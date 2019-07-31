@@ -5161,6 +5161,22 @@ Default: 'bin'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: preformed_tracers_nml    - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="init_preformed_tracers_option"
+type="char*256"
+category="Passive Tracers"
+group="preformed_tracers_nml"
+valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_branch,ccsm_hybrid,file" >
+Option for initialization of preformed tracers.
+
+Valid Values: 'ccsm_startup', 'zero', 'ccsm_startup_spunup', 'restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid', 'file'
+Default: 'ccsm_$RUNTYPE'
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: cfc_nml                  - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 

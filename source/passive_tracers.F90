@@ -489,7 +489,8 @@
 !-----------------------------------------------------------------------
 
    if (preformed_tracers_on) then
-      call preformed_tracer_init(tracer_d(preformed_tracers_ind_begin:preformed_tracers_ind_end), &
+      call preformed_tracer_init(preformed_tracers_ind_begin, init_ts_file_fmt, read_restart_filename, &
+                     tracer_d(preformed_tracers_ind_begin:preformed_tracers_ind_end), &
                      TRACER(:,:,:,preformed_tracers_ind_begin:preformed_tracers_ind_end,:,:), &
                      errorCode)
 

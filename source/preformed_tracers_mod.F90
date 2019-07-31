@@ -74,7 +74,8 @@ contains
 ! !IROUTINE: preformed_tracer_init
 ! !INTERFACE:
 
- subroutine preformed_tracer_init(tracer_d_module, TRACER_MODULE, errorCode)
+ subroutine preformed_tracer_init(preformed_tracers_ind_begin, init_ts_file_fmt, read_restart_filename, &
+                                  tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize preformed tracer module. This involves setting metadata, reading
@@ -90,6 +91,14 @@ contains
    use grid, only: KMT, n_topo_smooth, fill_points
 
 ! !INPUT/OUTPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      preformed_tracers_ind_begin         ! starting index of preformed tracers in global tracer array
+                                          ! passed through to rest_read_tracer_block
+
+   character (*), intent(in) ::  &
+      init_ts_file_fmt,          & ! format (bin or nc) for input file
+      read_restart_filename        ! file name for restart file
 
    type (tracer_field), dimension(preformed_tracer_cnt), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
@@ -110,8 +119,11 @@ contains
 
    character(*), parameter :: subname = 'preformed_tracer_mod:preformed_tracer_init'
 
+   character(char_len) :: &
+      init_preformed_tracers_option           ! option for initialization of preformed tracers
+
    logical(log_kind) :: &
-      lnml_found             ! Was preformed_tracers_nml found ?    
+      lnml_found             ! Was preformed_tracers_nml found ?
 
    integer(int_kind) :: &
       n,                   & ! index for looping over tracers
@@ -123,6 +135,8 @@ contains
 
    character (char_len) ::  &
       preformed_tracer_restart_filename  ! modified file name for restart file
+
+   namelist /preformed_tracers_nml/init_preformed_tracers_option
 
 
 !-----------------------------------------------------------------------
@@ -145,11 +159,59 @@ contains
 
 
 !-----------------------------------------------------------------------
+!  default namelist settings
+!-----------------------------------------------------------------------
+
+   init_preformed_tracers_option = 'unknown'
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=preformed_tracers_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call document(subname, 'init_preformed_tracers_option : ' // init_preformed_tracers_option)
+      call exit_POP(sigAbort, 'stopping in ' /&
+                           &/ subname)
+   endif
+
+!-----------------------------------------------------------------------
+!  broadcast all namelist variables
+!-----------------------------------------------------------------------
+
+   call broadcast_scalar(init_preformed_tracers_option , master_task)
+
+!-----------------------------------------------------------------------
 !  initialize tracers
 !-----------------------------------------------------------------------
 
-   TRACER_MODULE = c0
-   ! TODO: read from a restart if necessary! (put init_ts_option back in)
+   select case (init_preformed_tracers_option)
+   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
+
+      if (read_restart_filename == 'undefined') then
+         call document(subname, 'no restart file to read preformed tracers from')
+         call exit_POP(sigAbort, 'stopping in ' /&
+                               &/ subname)
+         endif
+
+      call rest_read_tracer_block(preformed_tracers_ind_begin, &
+                                  init_ts_file_fmt,            &
+                                  read_restart_filename,       &
+                                  tracer_d_module,             &
+                                  TRACER_MODULE)
+
+   case DEFAULT
+      TRACER_MODULE = c0
+   end select
 
 !-----------------------------------------------------------------------
 !  apply land mask to tracers
