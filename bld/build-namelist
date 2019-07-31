@@ -1299,6 +1299,7 @@ add_default($nl, "lchange_ans");
 ##########################################
 
 add_default($nl, "iage_on");
+add_default($nl, "preformed_tracers_on");
 add_default($nl, "cfc_on");
 add_default($nl, "sf6_on");
 add_default($nl, "abio_dic_dic14_on");

@@ -37,6 +37,7 @@ _config_cache_template = """<?xml version="1.0"?>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
 <entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
 <entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
+<entry id="use_preformed_tracers" value="{use_preformed_tracers}" list="" valid_values="FALSE,TRUE">Use preformed tracer module</entry>
 <entry id="use_irf" value="{use_irf}" list="" valid_values="FALSE,TRUE">Use IRF tracer module</entry>
 <entry id="use_sf6" value="{use_sf6}" list="" valid_values="FALSE,TRUE">Use sf6 tracer module</entry>
 </config_definition>
@@ -81,6 +82,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
     #----------------------------------------------------
 
     use_iage = "FALSE"
+    use_preformed_tracers = "FALSE"
     use_cfc = "FALSE"
     use_sf6 = "FALSE"
     use_abio = "FALSE"
@@ -99,6 +101,9 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
             if module == "iage":
                 use_iage = "TRUE"
                 NT = NT + 1
+            elif module == "preformed_tracers":
+                use_preformed_tracers = "TRUE"
+                NT = NT + 2
             elif module == "cfc":
                 use_cfc = "TRUE"
                 NT = NT + 2
@@ -178,6 +183,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
         use_cfc=use_cfc,
         use_ecosys=use_ecosys,
         use_iage=use_iage,
+        use_preformed_tracers=use_preformed_tracers,
         use_irf=use_irf,
         use_sf6=use_sf6)
 

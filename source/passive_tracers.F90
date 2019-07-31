@@ -77,6 +77,11 @@
        iage_set_interior,          &
        iage_reset
 
+   use preformed_tracers_mod, only:             &
+       preformed_tracer_cnt,            &
+       preformed_tracer_init,                  &
+       preformed_tracer_reset
+
    use abio_dic_dic14_mod, only:      &
        abio_dic_dic14_tracer_cnt,     &
        abio_dic_dic14_init,           &
@@ -154,30 +159,37 @@
 
    real (r8), dimension(:,:,:,:), allocatable :: FvPER
 
+
+!-----------------------------------------------------------------------
+!preformed tracer reset to which tracer index
+
+   integer (int_kind), dimension(preformed_tracer_cnt) :: preformed_reset_to_ind
+
 !-----------------------------------------------------------------------
 !  logical variables that denote if a passive tracer module is on
 !-----------------------------------------------------------------------
 
    logical (log_kind) ::  &
       ecosys_on, cfc_on, sf6_on, iage_on,&
-      abio_dic_dic14_on, IRF_on
+      abio_dic_dic14_on, IRF_on, preformed_tracers_on
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc_on, sf6_on, iage_on, &
-      abio_dic_dic14_on, IRF_on
+      abio_dic_dic14_on, IRF_on, preformed_tracers_on
 
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::                                 &
-      ecosys_driver_ind_begin,   ecosys_driver_ind_end,  &
-      iage_ind_begin,            iage_ind_end,           &
-      cfc_ind_begin,             cfc_ind_end,            &
-      sf6_ind_begin,             sf6_ind_end,            &
-      abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end, &
-      IRF_ind_begin,             IRF_ind_end
+   integer (int_kind) ::                                      &
+      ecosys_driver_ind_begin,     ecosys_driver_ind_end,     &
+      iage_ind_begin,              iage_ind_end,              &
+      preformed_tracers_ind_begin, preformed_tracers_ind_end, &
+      cfc_ind_begin,               cfc_ind_end,               &
+      sf6_ind_begin,               sf6_ind_end,               &
+      abio_dic_dic14_ind_begin,    abio_dic_dic14_ind_end,    &
+      IRF_ind_begin,               IRF_ind_end
 
 !-----------------------------------------------------------------------
 !  filtered SST and SSS, if needed
@@ -238,7 +250,7 @@
    integer (int_kind) :: cumulative_nt, n, &
       nml_error,        &! error flag for nml read
       iostat             ! io status flag
-
+   integer (int_kind) :: k
    character (char_len) :: sname, lname, units, coordinates
    character (4) :: grid_loc
 
@@ -264,6 +276,7 @@
    iage_on           = .false.
    abio_dic_dic14_on = .false.
    IRF_on            = .false.
+   preformed_tracers_on = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -301,6 +314,7 @@
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
    call broadcast_scalar(IRF_on,            master_task)
+   call broadcast_scalar(preformed_tracers_on, master_task)
 
 !-----------------------------------------------------------------------
 !  check for modules that require the flux coupler
@@ -348,6 +362,11 @@
    if (iage_on) then
       call set_tracer_indices('IAGE', iage_tracer_cnt, cumulative_nt,  &
                               iage_ind_begin, iage_ind_end)
+   end if
+
+   if (preformed_tracers_on) then
+      call set_tracer_indices('preformed', preformed_tracer_cnt, cumulative_nt,  &
+                              preformed_tracers_ind_begin, preformed_tracers_ind_end)
    end if
 
    if (abio_dic_dic14_on) then
@@ -465,6 +484,22 @@
 
    end if
 
+!-----------------------------------------------------------------------
+!  Preformed tracers block
+!-----------------------------------------------------------------------
+
+   if (preformed_tracers_on) then
+      call preformed_tracer_init(tracer_d(preformed_tracers_ind_begin:preformed_tracers_ind_end), &
+                     TRACER(:,:,:,preformed_tracers_ind_begin:preformed_tracers_ind_end,:,:), &
+                     errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in preformed_tracer_init')
+         return
+      endif
+
+   end if
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
@@ -734,6 +769,24 @@
    endif
 
  1010 format(5X,I2,10X,A)
+
+
+!------------------------------------------------------------------------
+! determine preformed_reset_to_ind; will be used to reset preformed tracers at the surface
+!------------------------------------------------------------------------
+do k=1,nt
+
+    if (tracer_d(k)%short_name == "ALK") then
+          preformed_reset_to_ind(1) = k
+    end if
+
+     if(tracer_d(k)%short_name == "PO4") then
+          preformed_reset_to_ind(2) = k
+     end if
+
+end do
+
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1259,6 +1312,15 @@
          TRACER_RESET(:,:,:,iage_ind_begin:iage_ind_end), bid)
    end if
 
+!-----------------------------------------------------------------------
+!  Preformed tracer block
+!-----------------------------------------------------------------------
+
+   if (preformed_tracers_on) then
+      call preformed_tracer_reset(TRACER_OLD, preformed_reset_to_ind, &
+                                   TRACER_RESET(:,:,:,preformed_tracers_ind_begin:preformed_tracers_ind_end), &
+                                   bid)
+   end if
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 does not reset values
 !-----------------------------------------------------------------------

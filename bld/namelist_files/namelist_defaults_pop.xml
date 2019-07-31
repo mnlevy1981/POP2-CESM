@@ -1191,6 +1191,9 @@
 <iage_on>.false.</iage_on>
 <iage_on use_iage="TRUE">.true.</iage_on>
 
+<preformed_tracers_on>.false.</preformed_tracers_on>
+<preformed_tracers_on use_preformed_tracers="TRUE">.true.</preformed_tracers_on>
+
 <cfc_on>.false.</cfc_on>
 <cfc_on use_cfc="TRUE">.true.</cfc_on>
 

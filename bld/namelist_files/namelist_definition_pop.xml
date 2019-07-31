@@ -5043,6 +5043,16 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 </entry>
 
 <entry
+id="preformed_tracers_on"
+type="logical"
+category="Passive Tracers"
+group="passive_tracers_on_nml" >
+Flag for using preformed tracer module.
+
+Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
+</entry>
+
+<entry
 id="abio_dic_dic14_on"
 type="logical"
 category="Passive Tracers"
