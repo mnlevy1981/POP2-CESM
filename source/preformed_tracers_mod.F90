@@ -89,6 +89,7 @@ contains
    use broadcast, only: broadcast_scalar
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
+   use passive_tracer_tools, only : file_read_single_tracer
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -120,7 +121,8 @@ contains
    character(*), parameter :: subname = 'preformed_tracer_mod:preformed_tracer_init'
 
    character(char_len) :: &
-      init_preformed_tracers_option           ! option for initialization of preformed tracers
+      init_preformed_tracers_option,          & ! option for initialization of preformed tracers
+      init_preformed_tracers_init_file
 
    logical(log_kind) :: &
       lnml_found             ! Was preformed_tracers_nml found ?
@@ -131,12 +133,12 @@ contains
       iblock,              & ! index for looping over blocks
       nml_error              ! namelist i/o error flag
 
-!     l,                   & ! index for looping over time levels
+   type(tracer_read), dimension(preformed_tracer_cnt) :: tracer_inputs   ! metadata about file to read
 
    character (char_len) ::  &
       preformed_tracer_restart_filename  ! modified file name for restart file
 
-   namelist /preformed_tracers_nml/init_preformed_tracers_option
+   namelist /preformed_tracers_nml/init_preformed_tracers_option, init_preformed_tracers_init_file
 
 
 !-----------------------------------------------------------------------
@@ -163,6 +165,7 @@ contains
 !-----------------------------------------------------------------------
 
    init_preformed_tracers_option = 'unknown'
+   init_preformed_tracers_init_file = 'unknown'
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -180,6 +183,7 @@ contains
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
       call document(subname, 'init_preformed_tracers_option : ' // init_preformed_tracers_option)
+      call document(subname, 'init_preformed_tracers_init_file : ' // init_preformed_tracers_init_file)
       call exit_POP(sigAbort, 'stopping in ' /&
                            &/ subname)
    endif
@@ -189,6 +193,20 @@ contains
 !-----------------------------------------------------------------------
 
    call broadcast_scalar(init_preformed_tracers_option , master_task)
+   call broadcast_scalar(init_preformed_tracers_init_file , master_task)
+
+!-----------------------------------------------------------------------
+!  initialize tracer read
+!-----------------------------------------------------------------------
+
+   do n=1, preformed_tracer_cnt
+      tracer_inputs(n)%mod_varname  = tracer_d_module(n)%short_name
+      tracer_inputs(n)%file_varname = tracer_d_module(n)%short_name
+      tracer_inputs(n)%scale_factor = c1
+      tracer_inputs(n)%default_val  = c0
+      tracer_inputs(n)%filename = init_preformed_tracers_init_file
+      tracer_inputs(n)%file_fmt = 'nc'
+   end do
 
 !-----------------------------------------------------------------------
 !  initialize tracers
@@ -210,7 +228,30 @@ contains
                                   TRACER_MODULE)
 
    case DEFAULT
-      TRACER_MODULE = c0
+      do n=1, preformed_tracer_cnt
+         call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
+      end do
+
+      if (n_topo_smooth > 0) then
+         do k=1,km
+            call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                    'preformed_tracer_init: error in fill points for tracers(oldtime)')
+               return
+            endif
+
+            call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                    'preformed_tracer_init: error in fill points for tracers(newtime)')
+               return
+            endif
+         enddo
+      endif
+
    end select
 
 !-----------------------------------------------------------------------

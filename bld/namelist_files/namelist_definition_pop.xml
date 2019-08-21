@@ -5176,6 +5176,18 @@ Valid Values: 'ccsm_startup', 'zero', 'ccsm_startup_spunup', 'restart', 'ccsm_co
 Default: 'ccsm_$RUNTYPE'
 </entry>
 
+<entry
+id="init_preformed_tracers_init_file"
+type="char*256"
+category="Passive Tracers"
+group="preformed_tracers_nml"
+input_pathname="abs" >
+Filename for initializing preformed tracers (if init_preformed_tracers_option='file').
+
+Default: 
+</entry>
+
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: cfc_nml                  - -->
 <!-- - - - - - - - - - - - - - - - - - -->
