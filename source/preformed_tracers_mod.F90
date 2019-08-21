@@ -213,6 +213,7 @@ contains
 !-----------------------------------------------------------------------
 
    select case (init_preformed_tracers_option)
+
    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
 
       if (read_restart_filename == 'undefined') then
@@ -226,8 +227,12 @@ contains
                                   read_restart_filename,       &
                                   tracer_d_module,             &
                                   TRACER_MODULE)
+   case ('ccsm_startup', 'ccsm_startup_spunup', 'zero')
 
-   case DEFAULT
+      TRACER_MODULE = c0
+
+   case ('file')
+
       do n=1, preformed_tracer_cnt
          call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
       end do
@@ -252,6 +257,10 @@ contains
          enddo
       endif
 
+   case DEFAULT
+     call document(subname, 'unknown init_preformed_tracers_option = ', init_preformed_tracers_option)
+     call exit_POP(sigAbort, 'stopping in ' /&
+                          &/ subname)
    end select
 
 !-----------------------------------------------------------------------

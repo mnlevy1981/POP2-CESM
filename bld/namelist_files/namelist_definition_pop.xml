@@ -5184,7 +5184,7 @@ group="preformed_tracers_nml"
 input_pathname="abs" >
 Filename for initializing preformed tracers (if init_preformed_tracers_option='file').
 
-Default: 
+Default: none (initialize to zero)
 </entry>
 
 

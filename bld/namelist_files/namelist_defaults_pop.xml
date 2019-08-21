@@ -1210,12 +1210,6 @@
 <irf_on use_irf="TRUE">.true.</irf_on>
 
 <!---------------------------->
-<!--  preformed_tracers_nml -->
-<!---------------------------->
-
-<init_preformed_tracers_init_file ocn_grid="gx1v7">ocn/pop/gx1v7/ic/preformed_IC_gx1v7_20190821.nc</init_preformed_tracers_init_file>
-
-<!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
 
