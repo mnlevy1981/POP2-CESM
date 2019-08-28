@@ -787,7 +787,9 @@
       end do
 
       do bid=1,max_blocks_clinic
-         call preformed_tracer_reset(TRACER(:,:,:,:,:,bid), preformed_reset_to_ind, &
+         call preformed_tracer_reset(TRACER(:,:,:,:,oldtime,bid), preformed_reset_to_ind, &
+                                      preformed_tracers_ind_begin, bid)
+         call preformed_tracer_reset(TRACER(:,:,:,:,curtime,bid), preformed_reset_to_ind, &
                                       preformed_tracers_ind_begin, bid)
       end do
    end if
