@@ -289,7 +289,7 @@ contains
 ! !IROUTINE: preformed_tracer_reset
 ! !INTERFACE:
 
- subroutine preformed_tracer_reset(TRACER_OLD, preformed_reset_to_ind, TRACER_RESET, bid)
+ subroutine preformed_tracer_reset(TRACER_RESET, preformed_reset_to_ind, preformed_tracers_ind_begin, bid)
 
 ! !DESCRIPTION:
 !  reset surface value for preformed tracers: PO4 and ALK
@@ -306,14 +306,13 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   integer(int_kind), intent(in) :: bid
    integer(int_kind), dimension(preformed_tracer_cnt), intent(in) :: preformed_reset_to_ind
-   real(r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &          !for getting the ALK and PO4 concentrations at the surface
-      TRACER_OLD
+   integer(int_kind), intent(in) :: preformed_tracers_ind_begin
+   integer(int_kind), intent(in) :: bid
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real(r8), dimension(nx_block,ny_block,km,preformed_tracer_cnt), intent(inout) :: &
+   real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
       TRACER_RESET      ! preformed tracers: ALK_preformed, PO4_preformed
 
 !EOP
@@ -322,13 +321,14 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   integer :: tracer_ind
+   integer :: tracer_ind, preformed_tracer_ind
 
 !-----------------------------------------------------------------------
 
-   do tracer_ind = 1, preformed_tracer_cnt                                !resetting preformed tracers to total PO4/ALK at the surface
+   do tracer_ind = 1, preformed_tracer_cnt
 
-      TRACER_RESET(:,:,1,tracer_ind) = TRACER_OLD(:,:,1,preformed_reset_to_ind(tracer_ind))
+      preformed_tracer_ind = preformed_tracers_ind_begin + (tracer_ind - 1)
+      TRACER_RESET(:,:,1,preformed_tracer_ind) = TRACER_RESET(:,:,1,preformed_reset_to_ind(tracer_ind))
 
    end do
 

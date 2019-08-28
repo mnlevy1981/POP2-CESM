@@ -773,19 +773,19 @@
 
 
 !------------------------------------------------------------------------
-! determine preformed_reset_to_ind; will be used to reset preformed tracers at the surface
+! determine preformed_reset_to_ind (used to reset preformed tracers at the surface)
+! also reset preformed tracers at the surface
 !------------------------------------------------------------------------
-do k=1,nt
+   if (preformed_tracers_on) then
+      do k=1,nt
 
-    if (tracer_d(k)%short_name == "ALK") then
-          preformed_reset_to_ind(1) = k
-    end if
-
-     if(tracer_d(k)%short_name == "PO4") then
-          preformed_reset_to_ind(2) = k
-     end if
-
-end do
+         if (tracer_d(k)%short_name == "ALK") then
+            preformed_reset_to_ind(1) = k
+         else if(tracer_d(k)%short_name == "PO4") then
+            preformed_reset_to_ind(2) = k
+         end if
+      end do
+   end if
 
 
 
@@ -1318,9 +1318,8 @@ end do
 !-----------------------------------------------------------------------
 
    if (preformed_tracers_on) then
-      call preformed_tracer_reset(TRACER_OLD, preformed_reset_to_ind, &
-                                   TRACER_RESET(:,:,:,preformed_tracers_ind_begin:preformed_tracers_ind_end), &
-                                   bid)
+      call preformed_tracer_reset(TRACER_RESET, preformed_reset_to_ind, &
+                                   preformed_tracers_ind_begin, bid)
    end if
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 does not reset values
