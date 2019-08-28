@@ -250,7 +250,7 @@
    integer (int_kind) :: cumulative_nt, n, &
       nml_error,        &! error flag for nml read
       iostat             ! io status flag
-   integer (int_kind) :: k
+   integer (int_kind) :: k, bid
    character (char_len) :: sname, lname, units, coordinates
    character (4) :: grid_loc
 
@@ -777,13 +777,18 @@
 ! also reset preformed tracers at the surface
 !------------------------------------------------------------------------
    if (preformed_tracers_on) then
-      do k=1,nt
+      do n=1,nt
 
-         if (tracer_d(k)%short_name == "ALK") then
-            preformed_reset_to_ind(1) = k
-         else if(tracer_d(k)%short_name == "PO4") then
-            preformed_reset_to_ind(2) = k
+         if (tracer_d(n)%short_name == "ALK") then
+            preformed_reset_to_ind(1) = n
+         else if(tracer_d(n)%short_name == "PO4") then
+            preformed_reset_to_ind(2) = n
          end if
+      end do
+
+      do bid=1,max_blocks_clinic
+         call preformed_tracer_reset(TRACER(:,:,:,:,:,bid), preformed_reset_to_ind, &
+                                      preformed_tracers_ind_begin, bid)
       end do
    end if
 
