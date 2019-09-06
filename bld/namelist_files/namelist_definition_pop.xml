@@ -4042,6 +4042,16 @@ group="forcing_pt_interior_nml">
 Default: unknown-pt_interior_shr_stream
 </entry>
 
+<entry 
+id="pt_interior_nudge"
+type="logical"
+category="forcing"
+group="forcing_pt_interior_nml" >
+PT interior restoring data should nudge PT, not be applied as forcing
+
+Default: .true.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_s_interior_nml   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -4243,6 +4253,16 @@ group="forcing_s_interior_nml">
 Default: unknown-s_interior_shr_stream
 </entry>
 
+
+<entry 
+id="s_interior_nudge"
+type="logical"
+category="forcing"
+group="forcing_s_interior_nml" >
+S interior restoring data should nudge S, not be applied as forcing
+
+Default: .true.
+</entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_ap_nml           - -->

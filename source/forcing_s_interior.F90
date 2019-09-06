@@ -123,7 +123,9 @@
 
    logical (log_kind) :: &
       s_interior_variable_restore, &
-      s_interior_surface_restore    ! Flag to include surface layer when restoring
+      s_interior_surface_restore,  &! Flag to include surface layer when restoring
+      s_interior_nudge              ! Flag to determine if we nudge S or just
+                                    ! apply forcing directly [default = nudge]
 
 !EOC
 !***********************************************************************
@@ -178,6 +180,7 @@
         s_interior_data_renorm,      s_interior_formulation,          &
         s_interior_variable_restore, s_interior_restore_filename,     &
         s_interior_restore_file_fmt, s_interior_surface_restore,      &
+        s_interior_nudge,                                             &
         s_interior_shr_stream_year_first,                             &
         s_interior_shr_stream_year_last,                              &
         s_interior_shr_stream_year_align,                             &
@@ -205,6 +208,7 @@
    s_interior_restore_filename  = 'unknown-s_interior_restore'
    s_interior_restore_file_fmt  = 'bin'
    s_interior_surface_restore   = .false.
+   s_interior_nudge             = .true.
    s_interior_shr_stream_year_first = 1
    s_interior_shr_stream_year_last  = 1
    s_interior_shr_stream_year_align = 1
@@ -243,6 +247,7 @@
    call broadcast_scalar(s_interior_restore_filename,  master_task)
    call broadcast_scalar(s_interior_restore_file_fmt,  master_task)
    call broadcast_scalar(s_interior_surface_restore,   master_task)
+   call broadcast_scalar(s_interior_nudge,             master_task)
    call broadcast_array (s_interior_data_renorm,       master_task)
    call broadcast_scalar(s_interior_shr_stream_year_first, master_task)
    call broadcast_scalar(s_interior_shr_stream_year_last , master_task)
@@ -328,7 +333,11 @@
                s_interior_bndy_type (1))
 
       S_INTERIOR_DATA = c0
-      s_interior_data_names(1) = 'SALINITY'
+      if (s_interior_nudge) then
+        s_interior_data_names(1) = 'SALINITY'
+      else
+        s_interior_data_names(1) = 'S_INTERIOR'
+      end if
       s_interior_bndy_loc  (1) = field_loc_center
       s_interior_bndy_type (1) = field_type_scalar
 
@@ -404,7 +413,11 @@
       k_dim = construct_io_dim('k', km)
 
       do n = 1, 12
-         write(s_interior_data_names(n),'(a8,i2.2)') 'SALINITY',n
+         if (s_interior_nudge) then
+           write(s_interior_data_names(n),'(a8,i2.2)') 'SALINITY',n
+         else
+           write(s_interior_data_names(n),'(a10,i2.2)') 'S_INTERIOR',n
+         end if
          s_interior_bndy_loc (n) = field_loc_center
          s_interior_bndy_type(n) = field_type_scalar
 
@@ -448,7 +461,11 @@
                s_interior_bndy_type (1))
 
       S_INTERIOR_DATA = c0
-      s_interior_data_names(1) = 'SALINITY'
+      if (s_interior_nudge) then
+        s_interior_data_names(1) = 'SALINITY'
+      else
+        s_interior_data_names(1) = 'S_INTERIOR'
+      end if
       s_interior_bndy_loc  (1) = field_loc_center
       s_interior_bndy_type (1) = field_type_scalar
 
@@ -881,20 +898,24 @@
 
       call accumulate_tavg_field(S_INTERIOR_DATA(:,:,k,bid,now), tavg_SALT_RESTORE, bid, k)
 
-      if (s_interior_variable_restore) then
-         DS_INTERIOR = S_RESTORE_RTAU(:,:,bid)*                &
-                       merge((S_INTERIOR_DATA(:,:,k,bid,now) - &
-                              TRACER(:,:,k,2,curtime,bid)),    &
-                             c0, k <= S_RESTORE_MAX_LEVEL(:,:,bid))
+      if (s_interior_nudge) then
+        if (s_interior_variable_restore) then
+           DS_INTERIOR = S_RESTORE_RTAU(:,:,bid)*                &
+                         merge((S_INTERIOR_DATA(:,:,k,bid,now) - &
+                                TRACER(:,:,k,2,curtime,bid)),    &
+                               c0, k <= S_RESTORE_MAX_LEVEL(:,:,bid))
+        else
+           if (k <= s_interior_restore_max_level) then
+              DS_INTERIOR = s_interior_restore_rtau*         &
+                           (S_INTERIOR_DATA(:,:,k,bid,now) - &
+                            TRACER(:,:,k,2,curtime,bid))
+           else
+              DS_INTERIOR = c0
+           endif
+        endif
       else
-         if (k <= s_interior_restore_max_level) then
-            DS_INTERIOR = s_interior_restore_rtau*         &
-                         (S_INTERIOR_DATA(:,:,k,bid,now) - &
-                          TRACER(:,:,k,2,curtime,bid))
-         else
-            DS_INTERIOR = c0
-         endif
-      endif
+        DS_INTERIOR = S_INTERIOR_DATA(:,:,k,bid,now)
+      end if
 
       !*** add restoring term to other source terms
 

@@ -987,6 +987,7 @@
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
 <pt_interior_surface_restore>.false.</pt_interior_surface_restore>
 <pt_interior_surface_restore ocn_onedim="TRUE">.true.</pt_interior_surface_restore>
+<pt_interior_nudge>.true.</pt_interior_nudge>
 <pt_interior_shr_stream_year_first>1</pt_interior_shr_stream_year_first>
 <pt_interior_shr_stream_year_last>1</pt_interior_shr_stream_year_last>
 <pt_interior_shr_stream_year_align>1</pt_interior_shr_stream_year_align>
@@ -1012,6 +1013,7 @@
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
 <s_interior_surface_restore>.false.</s_interior_surface_restore>
 <s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
+<s_interior_nudge>.true.</s_interior_nudge>
 <s_interior_shr_stream_year_first>1</s_interior_shr_stream_year_first>
 <s_interior_shr_stream_year_last>1</s_interior_shr_stream_year_last>
 <s_interior_shr_stream_year_align>1</s_interior_shr_stream_year_align>

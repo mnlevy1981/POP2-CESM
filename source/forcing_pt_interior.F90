@@ -123,7 +123,9 @@
 
    logical (log_kind) :: &
       pt_interior_variable_restore, &
-      pt_interior_surface_restore    ! Flag to include surface layer when restoring
+      pt_interior_surface_restore,  &! Flag to include surface layer when restoring
+      pt_interior_nudge              ! Flag to determine if we nudge PT or just
+                                     ! apply forcing directly [default = nudge]
 
 !EOC
 !***********************************************************************
@@ -179,6 +181,7 @@
         pt_interior_data_renorm,      pt_interior_formulation,         &
         pt_interior_variable_restore, pt_interior_restore_filename,    &
         pt_interior_restore_file_fmt, pt_interior_surface_restore,     &
+        pt_interior_nudge,                                             &
         pt_interior_shr_stream_year_first,                             &
         pt_interior_shr_stream_year_last,                              &
         pt_interior_shr_stream_year_align,                             &
@@ -206,6 +209,7 @@
    pt_interior_restore_filename  = 'unknown-pt_interior_restore'
    pt_interior_restore_filename  = 'bin'
    pt_interior_surface_restore   = .false.
+   pt_interior_nudge             = .true.
    pt_interior_shr_stream_year_first = 1
    pt_interior_shr_stream_year_last  = 1
    pt_interior_shr_stream_year_align = 1
@@ -244,6 +248,7 @@
    call broadcast_scalar(pt_interior_restore_filename,  master_task)
    call broadcast_scalar(pt_interior_restore_file_fmt,  master_task)
    call broadcast_scalar(pt_interior_surface_restore,   master_task)
+   call broadcast_scalar(pt_interior_nudge,             master_task)
    call broadcast_array (pt_interior_data_renorm,       master_task)
    call broadcast_scalar(pt_interior_shr_stream_year_first, master_task)
    call broadcast_scalar(pt_interior_shr_stream_year_last , master_task)
@@ -330,7 +335,11 @@
                pt_interior_bndy_type (1))
 
       PT_INTERIOR_DATA = c0
-      pt_interior_data_names(1) = 'TEMPERATURE'
+      if (pt_interior_nudge) then
+        pt_interior_data_names(1) = 'TEMPERATURE'
+      else
+        pt_interior_data_names(1) = 'PT_INTERIOR'
+      end if
       pt_interior_bndy_loc  (1) = field_loc_center
       pt_interior_bndy_type (1) = field_type_scalar
 
@@ -404,7 +413,11 @@
       k_dim = construct_io_dim('k',km)
 
       do n=1,12
-         write(pt_interior_data_names(n),'(a11,i2.2)') 'TEMPERATURE',n
+         if (pt_interior_nudge) then
+           write(pt_interior_data_names(n),'(a11,i2.2)') 'TEMPERATURE',n
+         else
+           write(pt_interior_data_names(n),'(a11,i2.2)') 'PT_INTERIOR',n
+         end if
          pt_interior_bndy_loc (n) = field_loc_center
          pt_interior_bndy_type(n) = field_type_scalar
 
@@ -448,7 +461,11 @@
                pt_interior_bndy_type (1))
 
       PT_INTERIOR_DATA = c0
-      pt_interior_data_names(1) = 'TEMPERATURE'
+      if (pt_interior_nudge) then
+        pt_interior_data_names(1) = 'TEMPERATURE'
+      else
+        pt_interior_data_names(1) = 'PT_INTERIOR'
+      end if
       pt_interior_bndy_loc  (1) = field_loc_center
       pt_interior_bndy_type (1) = field_type_scalar
 
@@ -883,19 +900,23 @@
       !--- tcraig this is generally called for all k except k=1
       call accumulate_tavg_field(PT_INTERIOR_DATA(:,:,k,bid,now), tavg_TEMP_RESTORE, bid, k)
 
-      if (pt_interior_variable_restore) then
-         DPT_INTERIOR = PT_RESTORE_RTAU(:,:,bid)*                &
-                        merge((PT_INTERIOR_DATA(:,:,k,bid,now) - &
-                               TRACER(:,:,k,1,curtime,bid)),     &
-                               c0, k <= PT_RESTORE_MAX_LEVEL(:,:,bid))
+      if (pt_interior_nudge) then
+        if (pt_interior_variable_restore) then
+           DPT_INTERIOR = PT_RESTORE_RTAU(:,:,bid)*                &
+                          merge((PT_INTERIOR_DATA(:,:,k,bid,now) - &
+                                 TRACER(:,:,k,1,curtime,bid)),     &
+                                 c0, k <= PT_RESTORE_MAX_LEVEL(:,:,bid))
+        else
+           if (k <= pt_interior_restore_max_level) then
+              DPT_INTERIOR = pt_interior_restore_rtau*         &
+                            (PT_INTERIOR_DATA(:,:,k,bid,now) - &
+                             TRACER(:,:,k,1,curtime,bid))
+           else
+              DPT_INTERIOR = c0
+           endif
+        endif
       else
-         if (k <= pt_interior_restore_max_level) then
-            DPT_INTERIOR = pt_interior_restore_rtau*         &
-                          (PT_INTERIOR_DATA(:,:,k,bid,now) - &
-                           TRACER(:,:,k,1,curtime,bid))
-         else
-            DPT_INTERIOR = c0
-         endif
+        DPT_INTERIOR = PT_INTERIOR_DATA(:,:,k,bid,now)
       endif
 
       !*** add restoring to any other source terms
