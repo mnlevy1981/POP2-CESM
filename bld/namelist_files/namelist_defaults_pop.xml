@@ -30,11 +30,13 @@
 <!-- time_manager_nml -->
 <!---------------------------->
 
-<time_mix_opt ocn_ncpl="24" ocn_grid="gx1v6">robert</time_mix_opt>
-<time_mix_opt ocn_ncpl="12" ocn_grid="gx1v6">robert</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v6" ocn_onedim="TRUE">avgfit</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v6" ocn_ncpl="24">robert</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v6" ocn_ncpl="12">robert</time_mix_opt>
 
-<time_mix_opt ocn_ncpl="24" ocn_grid="gx1v7">robert</time_mix_opt>
-<time_mix_opt ocn_ncpl="12" ocn_grid="gx1v7">robert</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v7" ocn_onedim="TRUE">avgfit</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v7" ocn_ncpl="24">robert</time_mix_opt>
+<time_mix_opt ocn_grid="gx1v7" ocn_ncpl="12">robert</time_mix_opt>
 <time_mix_opt>avgfit</time_mix_opt>
 <time_mix_freq>17</time_mix_freq>
 
