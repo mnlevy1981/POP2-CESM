@@ -92,6 +92,7 @@
       tavg_VDIFFU,       &! tavg id for vertical momentum stress
       tavg_VDIFFV,       &! tavg id for vertical momentum stress
       tavg_TEMP,         &! tavg id for temperature
+      tavg_TEMP_2,       &! tavg id for temperature (second stream)
       tavg_TEMP_MAX,     &! tavg id for maximum temperature
       tavg_TEMP_MIN,     &! tavg id for maximum temperature
       tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
@@ -101,6 +102,7 @@
       tavg_SST,          &! tavg id for surface temperature
       tavg_SST2,         &! tavg id for surface temperature squared
       tavg_SALT,         &! tavg id for salinity
+      tavg_SALT_2,       &! tavg id for salinity (second stream)
       tavg_SALT_MAX,     &! tavg id for maximum salinity
       tavg_SALT_MIN,     &! tavg id for minimum salinity
       tavg_SSS,          &! tavg id for surface salinity
@@ -354,6 +356,11 @@
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
+   call define_tavg_field(tavg_TEMP_2,'TEMP_2',3,                      &
+                          long_name='Potential Temperature',           &
+                          units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
    call define_tavg_field(tavg_TEMP_MAX,'TEMP_MAX',3,                  &
                           tavg_method=tavg_method_max,                 &
                           long_name='Maximum Potential Temperature',   &
@@ -401,6 +408,12 @@
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
+                          long_name='Salinity',                        &
+                          units='gram/kilogram', grid_loc='3111',      &
+                          scale_factor=1000.0_r8,                      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_SALT_2,'SALT_2',3,                      &
                           long_name='Salinity',                        &
                           units='gram/kilogram', grid_loc='3111',      &
                           scale_factor=1000.0_r8,                      &
