@@ -34,7 +34,8 @@
    use communicate, only: my_task, master_task, init_communicate
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
-   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime, ldebug
+   use prognostic, only: init_prognostic, TRACER, curtime, RHO, &
+                         newtime, oldtime, UVEL, VVEL, ldebug
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
@@ -385,11 +386,12 @@
 
 !-----------------------------------------------------------------------
 !
-!  set initial temperature and salinity profiles (includes read of
-!  restart file
+!  set initial velocity, temperature and salinity profiles
+!  (read of restart file is done in init_ts, overwrites UVEL and VVEL)
 !
 !-----------------------------------------------------------------------
 
+   call init_uv(errorCode)
    call init_ts(errorCode)
 
    if (errorCode /= POP_Success) then
@@ -835,6 +837,377 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: init_uv
+! !INTERFACE:
+
+ subroutine init_uv(errorCode)
+
+! !DESCRIPTION:
+!  Initializes velocity field
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode             ! returned error code
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  namelist input
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: nml_error ! namelist i/o error flag
+
+   character (char_len) :: &
+      init_uv_option,      &! option for initializing u,v
+      init_uv_file,        &! filename for input U,V file
+      init_uv_file_fmt      ! format (bin or nc) for input file
+
+   namelist /init_uv_nml/ init_uv_option, init_uv_file, init_uv_file_fmt
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j,k,icnt,        &! vertical level index
+      nu,                &! i/o unit for mean profile file
+      iblock              ! local block address
+
+   integer (int_kind) :: &
+      m, n,              &! overflows dummy loop index
+      ib,ie,jb,je         ! local domain index boundaries
+
+   logical (log_kind) :: &
+      lccsm_branch      ,&! flag for ccsm 'ccsm_branch' restart
+      lccsm_hybrid        ! flag for ccsm 'ccsm_hybrid' restart
+
+   type (block) ::       &
+      this_block          ! block information for current block
+
+   real (r8), dimension(km) :: &
+      uinit, vinit        ! mean initial state as function of depth
+
+   type (datafile) ::    &
+      in_file             ! data file type for init uv file
+
+   type (io_field_desc) :: &
+      io_uvel, io_vvel    ! io field descriptors for input T,S
+
+   type (io_dim) :: &
+      i_dim, j_dim, k_dim ! dimension descriptors
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      TEMP_DATA           ! temp array for reading T,S data
+
+!-----------------------------------------------------------------------
+!
+!  read input namelist and broadcast
+!
+!-----------------------------------------------------------------------
+
+   init_uv_option   = 'internal'
+   init_uv_file     = 'unknown_uv_file'
+   init_uv_file_fmt = 'nc'
+   errorCode = POP_Success
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=init_uv_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading init_uv_nml')
+   endif
+
+   if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,ndelim_fmt)
+       write(stdout,blank_fmt)
+       write(stdout,*) ' Initial U,V:'
+       write(stdout,blank_fmt)
+       write(stdout,*) ' init_uv_nml namelist settings:'
+       write(stdout,blank_fmt)
+       write(stdout, init_uv_nml)
+       write(stdout,blank_fmt)
+       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+   endif
+
+   call broadcast_scalar(init_uv_option    , master_task)
+   call broadcast_scalar(init_uv_file      , master_task)
+   call broadcast_scalar(init_uv_file_fmt  , master_task)
+
+!-----------------------------------------------------------------------
+!
+!  initialize u,v or call restart based on init_uv_option
+!
+!-----------------------------------------------------------------------
+
+
+   select case (init_uv_option)
+
+!-----------------------------------------------------------------------
+!
+!  read full 3-d t,s from input file
+!
+!-----------------------------------------------------------------------
+
+   case ('file')
+      first_step = .true.
+
+      if (my_task == master_task) then
+         write(stdout,'(a31,a)') 'Initial 3-d U,V read from file:', &
+                                 trim(init_uv_file)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+      endif
+
+      allocate(TEMP_DATA(nx_block,ny_block,km,max_blocks_clinic))
+
+      in_file = construct_file(init_uv_file_fmt,             &
+                               full_name=trim(init_uv_file), &
+                               record_length = rec_type_dbl, &
+                               recl_words=nx_global*ny_global)
+      call data_set(in_file,'open_read')
+
+      i_dim = construct_io_dim('i',nx_global)
+      j_dim = construct_io_dim('j',ny_global)
+      k_dim = construct_io_dim('k',km)
+
+      io_uvel = construct_io_field('UVEL',        &
+                 dim1=i_dim, dim2=j_dim, dim3=k_dim,        &
+                 field_loc = field_loc_center,    &
+                 field_type = field_type_scalar,  &
+                 d3d_array=TEMP_DATA)
+      io_vvel = construct_io_field('VVEL',        &
+                 dim1=i_dim, dim2=j_dim, dim3=k_dim,        &
+                 field_loc = field_loc_center,    &
+                 field_type = field_type_scalar,  &
+                 d3d_array=TEMP_DATA)
+
+      call data_set(in_file,'define',io_uvel)
+      call data_set(in_file,'define',io_vvel)
+
+      call data_set(in_file,'read'  ,io_uvel)
+      do iblock=1,nblocks_clinic
+         UVEL(:,:,:,curtime,iblock) = TEMP_DATA(:,:,:,iblock)
+      end do
+      call data_set(in_file,'read'  ,io_vvel)
+      do iblock=1,nblocks_clinic
+         VVEL(:,:,:,curtime,iblock) = TEMP_DATA(:,:,:,iblock)
+      end do
+
+      call destroy_io_field(io_uvel)
+      call destroy_io_field(io_vvel)
+
+      deallocate(TEMP_DATA)
+
+      call data_set(in_file,'close')
+      call destroy_file(in_file)
+
+      if (my_task == master_task) then
+         write(stdout,blank_fmt)
+         write(stdout,'(a12,a)') ' file read: ', trim(init_uv_file)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+      endif
+
+!#################### temporary kludge for overflows ####################
+!-----------------------------------------------------------------------
+!   fill any overflow-deepened points with U,V values from above
+!-----------------------------------------------------------------------
+
+
+      if (overflows_on) then
+         ! fill any overflow-deepened points with U,V values from above
+         do iblock = 1,nblocks_clinic
+            this_block = get_block(blocks_clinic(iblock),iblock)
+            do j=1,ny_block
+            do i=1,nx_block
+                do n=1,num_ovf
+                   do m=1,ovf(n)%num_kmt
+                      if( ovf(n)%loc_kmt(m)%i.eq.this_block%i_glob(i).and.&
+                          ovf(n)%loc_kmt(m)%j.eq.this_block%j_glob(j) ) then
+                         if(ovf(n)%loc_kmt(m)%knew .gt. ovf(n)%loc_kmt(m)%korg) then
+                            do k=ovf(n)%loc_kmt(m)%korg+1,ovf(n)%loc_kmt(m)%knew
+                               ! use U,V from level above
+                               UVEL(i,j,k,curtime,iblock) = &
+                                  UVEL(i,j,k-1,curtime,iblock)
+                               VVEL(i,j,k,curtime,iblock) = &
+                                  VVEL(i,j,k-1,curtime,iblock)
+                               write(stdout,100) ovf(n)%loc_kmt(m)%i, &
+                                  ovf(n)%loc_kmt(m)%j,ovf(n)%loc_kmt(m)%korg, &
+                                  k,ovf(n)%loc_kmt(m)%knew
+                               100 format(' init_uv: U,V extended from ijKMT = ', &
+                                  3(i4,1x),' to k=',i3,' until KMT_new=',i3)
+                            enddo
+                         endif
+                      endif
+                   end do
+                end do
+            enddo
+            enddo
+         enddo
+      endif
+
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+!################ end temporary kludge for overflows ####################
+
+
+      !$OMP PARALLEL DO PRIVATE(iblock, k, n)
+      do iblock = 1,nblocks_clinic
+         do k=1,km
+             where (k > KMT(:,:,iblock)) &
+                UVEL(:,:,k,curtime,iblock) = c0
+                VVEL(:,:,k,curtime,iblock) = c0
+         end do
+      end do
+      !$OMP END PARALLEL DO
+
+      if (n_topo_smooth > 0) then
+         do k=1,km
+            call fill_points(k,UVEL(:,:,k,curtime,:),errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                  'init_uv: error in fill_points for uvel')
+               return
+            endif
+
+            call fill_points(k,VVEL(:,:,k,curtime,:),errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                  'init_uv: error in fill_points for vvel')
+               return
+            endif
+
+         enddo
+      endif
+
+      do iblock=1,nblocks_clinic
+         UVEL(:,:,:,newtime,iblock) = UVEL(:,:,:,curtime,iblock)
+         UVEL(:,:,:,oldtime,iblock) = UVEL(:,:,:,curtime,iblock)
+         VVEL(:,:,:,newtime,iblock) = VVEL(:,:,:,curtime,iblock)
+         VVEL(:,:,:,oldtime,iblock) = VVEL(:,:,:,curtime,iblock)
+      end do
+
+!-----------------------------------------------------------------------
+!
+!  set up u,v from input mean state as function of depth
+!
+!-----------------------------------------------------------------------
+
+   case ('mean')
+      first_step = .true.
+
+      !***
+      !*** open input file and read t,s profile
+      !***
+
+      call get_unit(nu)
+      if (my_task == master_task) then 
+         write(stdout,'(a40,a)') &
+            'Initial mean U,V profile read from file:', &
+            trim(init_uv_file)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+         open(nu, file=init_uv_file, status='old')
+         do k = 1,km
+            read(nu,*) uinit(k),vinit(k)
+         enddo
+         close (nu)
+      endif
+      call release_unit(nu)
+
+      call broadcast_array(uinit, master_task)
+      call broadcast_array(vinit, master_task)
+
+      !***
+      !*** fill arrays with appropriate values
+      !***
+
+      !$OMP PARALLEL DO PRIVATE(iblock, k)
+      do iblock = 1,nblocks_clinic
+         do k=1,km
+            where (k <= KMT(:,:,iblock))
+               UVEL(:,:,k,curtime,iblock) = uinit(k)
+               VVEL(:,:,k,curtime,iblock) = vinit(k)
+            endwhere
+         enddo
+
+         UVEL(:,:,:,newtime,iblock)=UVEL(:,:,:,curtime,iblock)
+         UVEL(:,:,:,oldtime,iblock)=UVEL(:,:,:,curtime,iblock)
+         VVEL(:,:,:,newtime,iblock)=VVEL(:,:,:,curtime,iblock)
+         VVEL(:,:,:,oldtime,iblock)=VVEL(:,:,:,curtime,iblock)
+      end do
+      !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+!
+!  set up initial profile from 1992 Levitus mean ocean data
+!
+!-----------------------------------------------------------------------
+
+   case ('internal')
+      first_step = .true.
+      if (my_task == master_task) then
+         write(stdout,'(a63)') & 
+        'Initial U,V profile set to zero'
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+      endif
+
+!-----------------------------------------------------------------------
+!
+!  bad initialization option
+!
+!-----------------------------------------------------------------------
+
+   case default
+      call exit_POP(sigAbort,'Unknown u,v initialization option')
+   end select
+
+!-----------------------------------------------------------------------
+!
+!  check for appropriate initialization when overflows on and interactive
+!
+!-----------------------------------------------------------------------
+
+   select case (init_uv_option)
+   case ('mean', 'PHC')
+      if( overflows_on .and. overflows_interactive ) then
+         write(stdout,*) &
+           'init_uv: ERROR initializing for interactive overflows'
+         write(stdout,*) &
+           'initialization must be either ccsm_startup, file, or internal (zero)'
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+         call exit_POP(sigAbort,'ERROR wrong initialization with overflows')
+      endif
+   end select
+
+
+   call flushm (stdout)
+!-----------------------------------------------------------------------
+!EOC
+
+
+ end subroutine init_uv
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: init_ts
 ! !INTERFACE:
 
@@ -872,7 +1245,7 @@
 
    namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
                           init_ts_suboption, init_ts_outfile, &
-		  	  init_ts_outfile_fmt, init_ts_perturb
+                          init_ts_outfile_fmt, init_ts_perturb
 
 !-----------------------------------------------------------------------
 !
@@ -1002,7 +1375,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  read input namelist and broadcast 
+!  read input namelist and broadcast
 !
 !-----------------------------------------------------------------------
 
@@ -1471,10 +1844,10 @@
        call shr_ncread_tField(trim(init_ts_file),1,'depth',PHC_z)
 
        do j=1,PHCny 
-	  PHC_x(:,j) = tmp1/radian
+          PHC_x(:,j) = tmp1/radian
        enddo
        do i=1,PHCnx 
-	  PHC_y(i,:) = tmp2/radian
+          PHC_y(i,:) = tmp2/radian
        enddo
 
        call shr_map_mapSet(PHC_map, PHC_x, PHC_y, PHC_msk, &
@@ -1504,9 +1877,9 @@
        ! do vertical remap of T
        !-------------------------------------------------
            call shr_ncread_field4dG(trim(init_ts_file),'TEMP', &
-		rfld=PHC_ktop, dim3='depth',dim3i=kk)
+                                    rfld=PHC_ktop, dim3='depth',dim3i=kk)
            call shr_ncread_field4dG(trim(init_ts_file),'TEMP', &
-		rfld=PHC_kbot, dim3='depth',dim3i=kk+1)
+                                    rfld=PHC_kbot, dim3='depth',dim3i=kk+1)
            tmpkt = reshape(PHC_ktop,(/PHCnx,PHCny/))
            tmpkb = reshape(PHC_kbot,(/PHCnx,PHCny/))
            PHC_kmod_T(:,:) = (c1 - sinterp)*tmpkt(:,:) + &

@@ -755,6 +755,45 @@ Default: -100
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: init_uv_option           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="init_uv_option"
+type="char*256"
+category="init_uv"
+group="init_uv_nml"
+valid_values="internal,file,mean" >
+Option for initializing UVEL and VVEL
+
+Valid Values: 'internal', 'file', 'mean'
+Default: 'internal' => UVEL = VVEL = zero
+</entry>
+
+<entry
+id="init_uv_file"
+type="char*256"
+category="init_uv"
+group="init_uv_nml"
+input_pathname="abs" >
+Input file for initial UVEL and VVEL
+
+Default: 'unknown_uv_file'
+</entry>
+
+<entry
+id="init_uv_file_fmt"
+type="char*256"
+category="init_uv"
+group="init_uv_nml"
+valid_values="bin,nc" >
+init_uv_file format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
+Default: 'nc'
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: init_ts_option           - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -780,7 +819,7 @@ category="Initialization"
 group="init_ts_nml"
 input_pathname="abs" >
 Name of the input file containing ocean initial conditions.
-Contents of this file depend on init_ts_option. If luse_pointer_files = .true., and 
+Contents of this file depend on init_ts_option. If luse_pointer_files = .true., and
 init_ts_option is 'ccsm_continue', 'ccsm_branch', or 'ccsm_hybrid', then
 init_ts_file is ignored and POP reads the file specified in the ocean rpointer files.
 
@@ -804,14 +843,14 @@ id="init_ts_suboption"
 type="char*256"
 category="Initialization"
 group="init_ts_nml" >
-Suboption for initializing temperature and salinity. See CESM documentation. 
+Suboption for initializing temperature and salinity. See CESM documentation.
 This option should only be used by experts.
 
 If init_ts_suboption = 'spunup', then init_ts_option is set (internally) to 'ccsm_startup_spunup';
 otherwise, this option has no effect. If the spunup suboption is selected, the model T,S are
-initialized from the specified input file, but velocities are initialized to zero, as in 
+initialized from the specified input file, but velocities are initialized to zero, as in
 a 'ccsm_startup' run.
-This option should only be used by experts. 
+This option should only be used by experts.
 
 Default: 'null'
 </entry>
@@ -839,12 +878,12 @@ Valid Values: 'bin', 'nc'
 Default: 'nc'
 </entry>
 
-<entry 
+<entry
 id="init_ts_perturb"
 type="real"
 category="Initialization"
 group="init_ts_nml">
-init_ts_perturb perturbation for ts. 
+init_ts_perturb perturbation for ts.
 
 Default: 1.0e-3
 </entry>

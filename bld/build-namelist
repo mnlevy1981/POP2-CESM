@@ -596,6 +596,13 @@ if ($l1Ddyn eq '.true.') {
 add_default($nl, 'flat_bottom', 'iden_cols'=>"$iden_cols");
 
 ####################################
+# namelist group: init_uv_nml      #
+####################################
+
+add_default($nl, 'init_uv_option');
+add_default($nl, 'init_uv_file', 'val'=>'unknown_uv_file','noprepend'=>1);
+
+####################################
 # namelist group: init_ts_nml      #
 ####################################
 
@@ -2199,6 +2206,7 @@ my @groups = qw(domain_nml
                 time_manager_nml
                 grid_nml
                 pop1d_nml
+                init_uv_nml
                 init_ts_nml
                 diagnostics_nml
                 budget_diagnostics_nml
@@ -2467,6 +2475,12 @@ sub check_input_files {
       # niw_energy_file could be 'unknown_niw_energy'
       if (($var eq 'niw_energy_file') and
           ($pathname eq 'unknown_niw_energy')) {
+        $is_a_file = 0;
+      }
+
+      # init_uv_file could be 'unknown_uv_file'
+      if (($var eq 'init_uv_file') and
+          ($pathname eq 'unknown_uv_file')) {
         $is_a_file = 0;
       }
 
