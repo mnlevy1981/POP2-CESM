@@ -103,7 +103,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 NT = NT + 1
             elif module == "preformed_tracers":
                 use_preformed_tracers = "TRUE"
-                NT = NT + 2
+                NT = NT + 3
             elif module == "cfc":
                 use_cfc = "TRUE"
                 NT = NT + 2

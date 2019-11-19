@@ -45,7 +45,7 @@ module preformed_tracers_mod
 !-----------------------------------------------------------------------
 
    integer(int_kind), parameter :: &
-      preformed_tracer_cnt = 2
+      preformed_tracer_cnt = 3
 
 !-----------------------------------------------------------------------
 !  relative tracer indices
@@ -57,12 +57,15 @@ module preformed_tracers_mod
    integer(int_kind), parameter :: &
       preformed_po4_ind = 2     ! preformed po4 index
 
+   integer(int_kind), parameter :: &
+      preformed_o2_ind = 3     ! preformed o2 index
 !-----------------------------------------------------------------------
 !  derived type & parameter for tracer index lookup
 !-----------------------------------------------------------------------
 
    type(ind_name_pair), dimension(preformed_tracer_cnt) :: &
-      ind_name_table = (/ ind_name_pair(preformed_alk_ind, 'ALK_preformed'), ind_name_pair(preformed_po4_ind, 'PO4_preformed')  /)
+      ind_name_table = (/ ind_name_pair(preformed_alk_ind, 'ALK_preformed'), ind_name_pair(preformed_po4_ind, 'PO4_preformed'), &
+      ind_name_pair(preformed_o2_ind, 'O2_preformed') /)
 
 !EOC
 !*****************************************************************************
@@ -159,7 +162,11 @@ contains
    tracer_d_module(preformed_po4_ind)%tend_units = 'mmol/m3/s'
    tracer_d_module(preformed_po4_ind)%flux_units = 'cm mmol/m3/s'
 
-
+   tracer_d_module(preformed_o2_ind)%short_name = 'O2_preformed'
+   tracer_d_module(preformed_o2_ind)%long_name  = 'Preformed O2'
+   tracer_d_module(preformed_o2_ind)%units      = 'mmol/m3'
+   tracer_d_module(preformed_o2_ind)%tend_units = 'mmol/m3/s'
+   tracer_d_module(preformed_o2_ind)%flux_units = 'cm mmol/m3/s'
 !-----------------------------------------------------------------------
 !  default namelist settings
 !-----------------------------------------------------------------------
@@ -234,7 +241,11 @@ contains
    case ('file')
 
       do n=1, preformed_tracer_cnt
-         call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
+         if (n /= preformed_o2_ind) then
+            call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
+         else
+            TRACER_MODULE(:, :, :, n, :, :) = c0
+         end if
       end do
 
       if (n_topo_smooth > 0) then
@@ -313,7 +324,7 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 
    real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
-      TRACER_RESET      ! preformed tracers: ALK_preformed, PO4_preformed
+      TRACER_RESET      ! preformed tracers: ALK_preformed, PO4_preformed,  O2_preformed
 
 !EOP
 !BOC

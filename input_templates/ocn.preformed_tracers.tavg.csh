@@ -19,5 +19,6 @@ endif
 cat >! $CASEROOT/Buildconf/popconf/preformed_tracers_tavg_contents << EOF
 $s1  PO4_preformed
 $s1  ALK_preformed
+$s1  O2_preformed
 EOF
 

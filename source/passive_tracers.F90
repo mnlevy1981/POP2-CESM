@@ -783,6 +783,8 @@
             preformed_reset_to_ind(1) = n
          else if(tracer_d(n)%short_name == "PO4") then
             preformed_reset_to_ind(2) = n
+         else if(tracer_d(n)%short_name == "O2") then
+            preformed_reset_to_ind(3) = n
          end if
       end do
 
