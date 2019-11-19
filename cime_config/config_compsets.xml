@@ -67,6 +67,11 @@
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
+  <compset>
+    <alias>C1850ECO_ECOCESM20</alias>
+    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+
   <!-- G compsets -->
 
   <compset>
@@ -102,6 +107,21 @@
   <compset>
     <alias>G1850ECOIAF</alias>
     <lname>1850_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GOMIPECOIAF</alias>
+    <lname>OMIP_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECOIAF_JRA</alias>
+    <lname>1850_DATM%JRA_SLND_CICE_POP2%ECO_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GOMIPECOIAF_JRA</alias>
+    <lname>OMIP_DATM%JRA_SLND_CICE_POP2%ECO_DROF%JRA_SGLC_WW3</lname>
   </compset>
 
   <compset>
