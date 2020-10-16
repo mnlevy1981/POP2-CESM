@@ -131,7 +131,7 @@
 ! !IROUTINE: pop_init_phase1
 ! !INTERFACE:
 
- subroutine pop_init_phase1(errorCode)
+ subroutine pop_init_phase1(errorCode, nuopc_cap)
 
 ! !DESCRIPTION:
 !  This routine is the first of a two-phase initialization process for
@@ -145,6 +145,8 @@
 
    integer (POP_i4), intent(out) :: &
       errorCode         ! returned error code
+
+   logical, optional, intent(in) :: nuopc_cap
 
 !EOP
 !BOC
@@ -184,7 +186,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_io
+   call init_io(nuopc_cap)
 
 #ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------

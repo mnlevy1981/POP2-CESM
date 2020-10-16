@@ -344,6 +344,7 @@ my $OCN_TRACER_MODULES_OPT = "$xmlvars{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
 my $OCN_ONEDIM             = "$xmlvars{'OCN_ONEDIM'}";
+my $OCN_PHYS_DEV           = "$xmlvars{'OCN_PHYS_DEV'}";
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
@@ -353,7 +354,7 @@ my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
-my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
+my $ROF_GRID               = "$xmlvars{'ROF_GRID'}";
 my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
@@ -927,7 +928,7 @@ add_default($nl, 'ah&hmix_del4t_nml');
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
-add_default($nl, 'kappa_isop_deep');
+add_default($nl, 'kappa_isop_deep','ocn_phys_dev'=>"$OCN_PHYS_DEV");
 add_default($nl, 'kappa_thic_deep');
 
 # All namelist values are stored in exactly the format
@@ -1139,12 +1140,12 @@ add_default($nl,'sfwf_interp_freq');
 add_default($nl,'sfwf_interp_type');
 add_default($nl,'sfwf_interp_inc');
 add_default($nl,'sfwf_restore_tau');
-add_default($nl,'sfwf_filename');
+add_default($nl,'sfwf_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'sfwf_file_fmt');
 add_default($nl,'sfwf_data_renorm');
 add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'datm_mode'=>"$DATM_MODE");
+add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'lfw_as_salt_flx');
 add_default($nl,'precip_fact_const');
 
@@ -1320,7 +1321,7 @@ add_default($nl, "irf_on");
 add_default($nl, 'estuary_option');
 add_default($nl, 'estuary_type');
 add_default($nl, 'ebm_param_option');
-add_default($nl, 'ebm_param_filename', 'datm_mode'=>"$DATM_MODE", 'nofail'=>1);
+add_default($nl, 'ebm_param_filename', 'rof_grid'=>"$ROF_GRID", 'nofail'=>1);
 if (not $nl->get_value('ebm_param_filename')) {
 	add_default($nl, 'ebm_param_filename', 'val'=>'unknown_ebm_param_filename','noprepend'=>1);
 }
@@ -1523,6 +1524,7 @@ if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'ecosys_vflux_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
 }
 
@@ -1531,17 +1533,23 @@ if ($ecosys_on eq "TRUE") {
 ############################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'dust_flux_source','ocn_coupling'=>"$OCN_COUPLING");
-  add_default($nl, 'dust_flux_input%filename');
-  add_default($nl, 'dust_flux_input%file_fmt');
-  add_default($nl, 'dust_flux_input%file_varname');
+  add_default($nl, 'dust_flux_source', 'ocn_coupling'=>"$OCN_COUPLING");
+  if ($nl->get_value('dust_flux_source') ne '\'driver\'') {
+    add_default($nl, 'dust_flux_input%filename');
+    add_default($nl, 'dust_flux_input%file_fmt');
+    add_default($nl, 'dust_flux_input%file_varname');
+  }
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
-  add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
-  add_default($nl, 'dust_ratio_thres');
-  add_default($nl, 'iron_flux_input%filename');
-  add_default($nl, 'iron_flux_input%file_fmt');
-  add_default($nl, 'iron_flux_input%file_varname');
+  add_default($nl, 'iron_flux_source', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'dust_ratio_thres', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'fe_bioavail_frac_offset', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'dust_ratio_to_fe_bioavail_frac_r', 'ocn_coupling'=>"$OCN_COUPLING");
+  if ($nl->get_value('iron_flux_source') ne '\'driver-derived\'') {
+    add_default($nl, 'iron_flux_input%filename');
+    add_default($nl, 'iron_flux_input%file_fmt');
+    add_default($nl, 'iron_flux_input%file_varname');
+  }
   add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
 
   add_default($nl, 'fesedflux_input%filename');
@@ -1554,7 +1562,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'o2_consumption_scalef_opt');
+  add_default($nl, 'o2_consumption_scalef_opt', 'ocn_coupling'=>"$OCN_COUPLING");
   if ($nl->get_value('o2_consumption_scalef_opt') eq '\'file_time_invariant\'') {
     add_default($nl, 'o2_consumption_scalef_input%filename');
     add_default($nl, 'o2_consumption_scalef_input%file_varname');
@@ -1603,9 +1611,12 @@ if ($ecosys_on eq "TRUE") {
   }
 
   my $estuary_type = $nl->get_value('estuary_type');
-  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type);
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'rof_grid'=>"$ROF_GRID", 'nofail'=>1);
+  if (not $nl->get_value('riv_flux_shr_stream_file')) {
+	  add_default($nl, 'riv_flux_shr_stream_file', 'val'=>'unknown','noprepend'=>1);
+  }
   add_default($nl, 'riv_flux_shr_stream_year_first');
-  add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_din_file_varname');
   add_default($nl, 'riv_flux_din_scale_factor');
@@ -1678,18 +1689,28 @@ if ($ecosys_on eq "TRUE") {
   # restorable_tracer_names
   my @tracer_names = split(/,/,$nl->get_value('restorable_tracer_names'));
   my $tracer_cnt =$#tracer_names+1;
-  add_default($nl, 'restore_data_filenames_derived');
-  my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
-  add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
-  add_default($nl, 'restore_data_file_varnames');
+  my $first_tracer = @tracer_names[0];
+  $first_tracer =~ s/[\'\"]//g; # strip quotes
+  if (length $first_tracer != 0) {
+    add_default($nl, 'restore_data_filenames_derived');
+    my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
+    add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
+    add_default($nl, 'restore_data_file_varnames');
 
-  add_default($nl, 'restore_inv_tau_opt');
-  add_default($nl, 'restore_inv_tau_const');
+    add_default($nl, 'restore_inv_tau_opt');
+    my $restore_inv_tau_opt = $nl->get_value('restore_inv_tau_opt');
+    $restore_inv_tau_opt =~ s/[\'\"]//g; # strip quotes
+    if ($restore_inv_tau_opt eq "const") {
+      add_default($nl, 'restore_inv_tau_const');
+    }
 
-  add_default($nl, 'restore_inv_tau_input%filename');
-  add_default($nl, 'restore_inv_tau_input%file_varname');
-  add_default($nl, 'restore_inv_tau_input%file_fmt');
-  add_default($nl, 'restore_inv_tau_input%scale_factor');
+    if ($restore_inv_tau_opt eq "file_time_invariant") {
+      add_default($nl, 'restore_inv_tau_input%filename');
+      add_default($nl, 'restore_inv_tau_input%file_varname');
+      add_default($nl, 'restore_inv_tau_input%file_fmt');
+      add_default($nl, 'restore_inv_tau_input%scale_factor');
+    }
+  }
 
   add_default($nl, 'surf_avg_dic_const');
   add_default($nl, 'surf_avg_alk_const');
@@ -1699,8 +1720,10 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'iron_frac_in_atm_fine_dust');
   add_default($nl, 'iron_frac_in_atm_coarse_dust');
   add_default($nl, 'iron_frac_in_seaice_dust');
-  add_default($nl, 'iron_frac_in_atm_bc');
-  add_default($nl, 'iron_frac_in_seaice_bc');
+  add_default($nl, 'atm_bc_fe_bioavail_frac');
+  add_default($nl, 'atm_fe_to_bc_ratio');
+  add_default($nl, 'seaice_bc_fe_bioavail_frac');
+  add_default($nl, 'seaice_fe_to_bc_ratio');
 }
 
 ##########################################
@@ -2134,6 +2157,7 @@ for my $module (@OCN_TAVG_MODULES) {
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
+
 add_default($nl, 'n_tavg_streams',              'val'=>"$numcols");
 add_default($nl, 'ltavg_streams_index_present', 'val'=>"$ltavg_streams_index_present");
 add_default($nl, 'tavg_freq_opt',               'val'=>"@{$tavg_nml{'tavg_freq_opt'}}");
@@ -2155,6 +2179,11 @@ add_default($nl, 'tavg_contents',               'val'=>"${RUNDIR}/${OCN_GRID}_ta
 add_default($nl, 'tavg_infile',                 'val'=>"${output_h}restart.end");
 add_default($nl, 'tavg_outfile',                'val'=>"$output_h");
 add_default($nl, 'ltavg_ignore_extra_streams',  'val'=>".false.");
+add_default($nl, 'tavg_contents_override_file');
+
+# Store value of tavg_contents_override_file
+my $tavg_contents_override_file = $nl->get_value('tavg_contents_override_file');
+$tavg_contents_override_file =~ s/['"]//g; # strip the quotes
 
 if (($ltidal_mixing =~ /true/) || ($lniw_mixing =~ /true/)) {
     push(@OCN_TAVG_MODULES, "vmix");
@@ -2194,6 +2223,20 @@ if (($ltidal_mixing =~ /true/) || ($lniw_mixing =~ /true/)) {
     }
     $sysmod = "cat ${CASEBUILD}/popconf/vmix_tavg_contents >> $pop_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
+
+# If user specifies tavg_contents_override_file, use it instead of the generated contents file
+if ($tavg_contents_override_file ne "none") {
+  # 1. Check to see if specified file exists
+  die "The file $tavg_contents_override_file does not exist, and I can't go on without it." unless -e $tavg_contents_override_file;
+
+  # 2. Save the autogenerated file in Buildconf
+  $sysmod = "mv $pop_tavg_file ${CASEROOT}/Buildconf/popconf/autogen_tavg_contents";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+  #. 3. Copy new tavg_contents file into Buildconf
+  $sysmod = "cp $tavg_contents_override_file $pop_tavg_file";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
 #-----------------------------------------------------------------------------------------------
@@ -2460,61 +2503,19 @@ sub check_input_files {
       # Need to strip the quotes
       $pathname =~ s/['"]//g;
 
-      # bottom_cell_file could be 'unknown_bottom_cell'
-      if (($var eq 'bottom_cell_file') and
-          ($pathname eq 'unknown_bottom_cell')) {
-        $is_a_file = 0;
+      my $pathname_len = length $pathname;
+      if ($pathname_len >= 7){
+        my $pathname_prefix = substr $pathname, 0, 7;
+
+        # discard all paths beginning with "unknown"
+        if ($pathname_prefix eq "unknown"){
+          $is_a_file = 0;
+        }
+        # discard all paths beginning with "same_as"
+        if ($pathname_prefix eq "same_as"){
+          $is_a_file = 0;
+        }
       }
-
-      # tidal_energy_file could be 'unknown_tidal_mixing'
-      if (($var eq 'tidal_energy_file') and
-          ($pathname eq 'unknown_tidal_mixing')) {
-        $is_a_file = 0;
-      }
-
-      # niw_energy_file could be 'unknown_niw_energy'
-      if (($var eq 'niw_energy_file') and
-          ($pathname eq 'unknown_niw_energy')) {
-        $is_a_file = 0;
-      }
-
-      # init_uv_file could be 'unknown_uv_file'
-      if (($var eq 'init_uv_file') and
-          ($pathname eq 'unknown_uv_file')) {
-        $is_a_file = 0;
-      }
-
-      # init_iage_file could be 'same_as_TS'
-      if (($var eq 'init_iage_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # init_ecosys_init_file could be 'same_as_TS'
-      if (($var eq 'init_ecosys_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # init_abio_dic_dic14_init_file could be 'same_as_TS'
-      if (($var eq 'init_abio_dic_dic14_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # abio_dic_dic14_restfile_fallback could be 'unknown'
-      if (($var eq 'abio_dic_dic14_restfile_fallback') and
-          ($pathname eq 'unknown')) {
-        $is_a_file = 0;
-      }
-
-
-      # ciso_init_ecosys_init_file could be 'same_as_TS'
-      if (($var eq 'ciso_init_ecosys_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
     }
 
     # If it is, check whether it exists locally and print status
@@ -2765,6 +2766,9 @@ sub module_tavg_script_args() {
   my $nl         = shift;
   my $module     = shift;
   my $cfg        = shift;
+  if ($module eq "abio_dic_dic14") {
+    return ($nl->get_value('abio_dic_dic14_ltavg_NK'));
+  }
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
             $nl->get_value('lecosys_tavg_alt_co2'));
