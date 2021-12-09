@@ -637,6 +637,13 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
+  <decomp nproc="1543" res="tx0.1v2" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >36</bsize_x>
+    <bsize_y   >120</bsize_y>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
   <decomp nproc="1612" res="tx0.1v2" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
@@ -672,6 +679,13 @@
     <decomptype>spacecurve</decomptype>
   </decomp>
 
+  <decomp nproc="2014" res="tx0.1v2" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >80</bsize_x>
+    <bsize_y   >40</bsize_y>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
   <decomp nproc="2048" res="tx0.1v2" >
     <maxblocks >1</maxblocks>
     <bsize_x   >72</bsize_x>
@@ -690,6 +704,13 @@
     <maxblocks >1</maxblocks>
     <bsize_x   >60</bsize_x>
     <bsize_y   >40</bsize_y>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
+  <decomp nproc="2940" res="tx0.1v2" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >72</bsize_x>
+    <bsize_y   >30</bsize_y>
     <decomptype>spacecurve</decomptype>
   </decomp>
 
