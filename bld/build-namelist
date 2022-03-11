@@ -140,22 +140,6 @@ $cfgdir         = $opts{'cfg_dir'};
 # Validate some of the commandline option values.
 validate_options("commandline", \%opts);
 
-# build config_cache.xml file (needed below)
-my $config_cache = "${CASEBUILD}/popconf/config_cache.xml";
-my  $fh = new IO::File;
-$fh->open(">$config_cache") or die "** can't open file: $config_cache\n";
-print $fh  <<"EOF";
-<?xml version="1.0"?>
-<config_definition>
-<entry id="ocn_grid" value="$OCN_GRID">
-</config_definition>
-EOF
-$fh->close;
-if ($print>=2) { print "Wrote file $config_cache $eol"; }
-(-f $config_cache)  or  die <<"EOF";
-** $ProgName - Cannot find configuration cache file: $config_cache\" **
-EOF
-
 #-----------------------------------------------------------------------------------------------
 # Make sure we can find required perl modules, definition, and defaults files.
 # Look for them under the directory that contains the configure script.
@@ -1880,11 +1864,13 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
 for my $module (@OCN_TRACER_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
+  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET POPROOT=$CODEROOT/components/pop";
+  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
   if (-f "${my_path}/$file"){
-    $sysmod = "${my_path}/${file} $my_stream";
+    $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-    $sysmod = "${CODEROOT}/components/pop/input_templates/${file} $my_stream";
+    $sysmod = "$env ${CODEROOT}/components/pop/input_templates/${file} $my_stream @tavg_script_args";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 
@@ -2580,4 +2566,35 @@ sub any() {
     }
   }
   return 0;
+}
+
+#-------------------------------------------------------------------------------
+
+sub module_tavg_script_args() {
+  my $nl         = shift;
+  my $module     = shift;
+  my $cfg        = shift;
+  if ($module eq "ecosys") {
+    return ($nl->get_value('lecosys_tavg_all'),
+            $nl->get_value('lecosys_tavg_alt_co2'));
+  }
+  if ($module eq "IRF") {
+    my $IRF_NT   = $cfg->get("irf_nt");
+    my $IRF_MODE = $cfg->get("irf_mode");
+    return ($nl->get_variable_value("irf_nml", "irf_tracer_file"),
+            $nl->get_variable_value("irf_nml", "irf_tracer_file_ind_start"),
+            $IRF_NT,
+            "'$IRF_MODE'");
+  }
+  if ($module eq "mcog") {
+    use List::Util qw( max );
+    my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+    my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+    my $mcog_ncols = @mcog_col_to_bin;
+    my $mcog_nbins = max @mcog_col_to_bin;
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"),
+            $mcog_ncols,
+            $mcog_nbins);
+  }
+  return "";
 }

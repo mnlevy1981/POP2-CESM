@@ -26,7 +26,15 @@
 *.a
 *.lib
 
+# Compiled python code
+**/*.pyc
+**/__pycache__/
+
 # Executables
 *.exe
 *.out
 *.app
+
+# Externals via manage_externals
+externals/MARBL
+externals/CVMix

@@ -128,6 +128,8 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                                                         case.get_value("OCN_BGC_CONFIG"))
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
+                if MARBL_NT > 0:
+                    MARBL_NT = 27
                 NT = NT + MARBL_NT
                 case.set_value("MARBL_NT", MARBL_NT)
             elif module == "IRF":
@@ -149,7 +151,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
     # Determine tracer cppdefs and update pop_cppdefs
     #----------------------------------------------------
 
-    tracer_cppdefs = " -DNT=%d -DECOSYS_NT=%d -DIRF_NT=%d -DZOOPLANKTON_CNT=1 -DAUTOTROPH_CNT=3 -DGRAZER_PREY_CNT=3 " % (NT, 27, IRF_NT)
+    tracer_cppdefs = " -DNT=%d -DECOSYS_NT=%d -DIRF_NT=%d -DZOOPLANKTON_CNT=1 -DAUTOTROPH_CNT=3 -DGRAZER_PREY_CNT=3 " % (NT, MARBL_NT, IRF_NT)
 
     other_cppdefs = ""
     if "tx0.1" in case.get_value("OCN_GRID"):

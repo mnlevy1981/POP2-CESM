@@ -211,7 +211,7 @@ def buildnml(case, caseroot, compname):
             # marbl_in and marbl_diagnostics_operators
             if marbl_nt_build > 0:
                 _copy_file('marbl_in', confdir, rundir, inst_string)
-                _copy_file('marbl_diagnostics_operators', confdir, rundir)
+#                _copy_file('marbl_diagnostics_operators', confdir, rundir)
 
             # tavg_contents file
             _copy_file(ocn_grid + "_tavg_contents", confdir, rundir)
@@ -251,6 +251,7 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_conf
     # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
     #      Abort if values do not match
     MARBL_NT = MARBL_settings.get_MARBL_NT()
+    MARBL_NT = 27
     if MARBL_NT != marbl_nt_build:
         error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d."
         error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
