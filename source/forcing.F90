@@ -23,7 +23,11 @@
    use grid
    use ice, only: salice, tfreez, FW_FREEZE
    use forcing_ws
-   use forcing_shf
+! MCOG +
+   use forcing_fields
+   use mcog
+! MCOG -
+    use forcing_shf
    use forcing_sfwf
    use forcing_pt_interior
    use forcing_s_interior
@@ -224,7 +228,6 @@
                           long_name='Windstress in grid-y direction', &
                           units='dyne/centimeter^2', grid_loc='2220', &
                           coordinates='ULONG ULAT time')
-
    call define_tavg_field(tavg_TAUY2,'TAUY2',2,                         &
                           long_name='Windstress**2 in grid-y direction', &
                           units='dyne^2/centimeter^4', grid_loc='2220', &
@@ -245,7 +248,7 @@
                           units='kg/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_U10_SQR,'U10_SQR',2,                  &
+   call define_tavg_field(tavg_U10_SQR,'U10_SQR',2,                &
                           long_name='10m wind speed squared',      &
                           units='cm^2/^s', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
@@ -301,7 +304,6 @@
 ! !REVISION HISTORY:
 !  same as module
 
-
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -316,6 +318,10 @@
    real (r8) ::  &
       cosz_day,  &
       qsw_eps
+
+! MCOG +
+   integer (int_kind) ::  nbin
+! MCOG -
 
 
 #ifdef _HIRES
@@ -383,6 +389,20 @@
 
             SHF_QSW(:,:,iblock) = QSW_COSZ_WGHT(:,:,iblock) &
                * SHF_COMP(:,:,iblock,shf_comp_qsw)
+           
+            if (lmcog) then
+               ! Include category 0 (open ocean) shortwave.
+               ! Note: SHF_QSW_SAVE_MCOG is the daily mean shortwave absorbed over the
+               ! open ocean received from the coupler. This value is held constant over the
+               ! coupling  interval and distributed over a modeled diurnal cycle by the ocean
+               ! component at each timestep (to the array SHF_QSW_MCOG).
+
+               if (lmcog_debug)  &
+               write(stdout,*) '(set_surface_forcing) set SHF_QSW_MCOG = cosz*SHF_QSW_SAVE_MCOG'
+               do nbin=0,nbins_MCOG-1
+                 SHF_QSW_MCOG(:,:,nbin,iblock) = QSW_COSZ_WGHT(:,:,iblock) * SHF_QSW_SAVE_MCOG(:,:,nbin,iblock)
+               enddo ! nbin
+            endif ! lmcog
 
          enddo
          !$OMP END PARALLEL DO
@@ -391,6 +411,16 @@
 
          if (registry_match('lcoupled')) then
             SHF_QSW = qsw_12hr_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
+
+            if (lmcog) then
+               if (lmcog_debug)  &
+               write(stdout,*) '(set_surface_forcing) set SHF_QSW_MCOG = 12hrfactor*SHF_QSW_SAVE_MCOG'
+
+               do nbin=0,nbins_MCOG-1
+                 SHF_QSW_MCOG(:,:,nbin,:) = qsw_12hr_factor(index_qsw) * SHF_QSW_SAVE_MCOG(:,:,nbin,:)
+               enddo ! nbin
+            endif ! lmcog
+
          endif
 
       endif
@@ -407,16 +437,15 @@
            .not. lfw_as_salt_flx .and. liceform ) then
         FW = FW + FW_FREEZE
 
-         !$OMP PARALLEL DO PRIVATE(iblock)
-         do iblock = 1, nblocks_clinic
-            call tfreez(TFRZ(:,:,iblock), TRACER(:,:,1,2,curtime,iblock))
-         enddo
-         !$OMP END PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
+        do iblock = 1, nblocks_clinic
+           call tfreez(TFRZ(:,:,iblock), TRACER(:,:,1,2,curtime,iblock))
+        enddo
+        !$OMP END PARALLEL DO
 
         TFW(:,:,1,:) = TFW(:,:,1,:) + FW_FREEZE(:,:,:)*TFRZ(:,:,:)
         TFW(:,:,2,:) = TFW(:,:,2,:) + FW_FREEZE(:,:,:)*salice
       endif
-
 
    call set_ap(ATM_PRESS)
 
@@ -590,6 +619,8 @@
    !$OMP END PARALLEL DO
 
    if (registry_match('lcoupled')) call tavg_coupled_forcing
+
+   if (lmcog) call tavg_mcog
 
 !-----------------------------------------------------------------------
 !EOC

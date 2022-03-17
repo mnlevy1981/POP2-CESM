@@ -800,56 +800,26 @@
 !  local variables
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+      integer (int_kind) :: &
       n,       & ! tracer index
-      iblock,  & ! block index
-      dcount,  & ! diag counter
-      ib,ie,jb,je
+      iblock     ! block index
 
-   real (r8), dimension(max_blocks_clinic,tracer_cnt) :: &
-      local_sums ! array for holding block sums of each diagnostic
-
-   real (r8) :: &
-      sum_tmp    ! temp for local sum
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK1, &   ! local work space
-      TFACT      ! factor for normalizing sums
-
-   type (block) :: &
-      this_block ! block information for current block
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+      WORK       ! local work space
 
 !-----------------------------------------------------------------------
 
-   local_sums = c0
-
-!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
-   do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
-      ib = this_block%ib
-      ie = this_block%ie
-      jb = this_block%jb
-      je = this_block%je
-      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
-
-      do n = 1, tracer_cnt
-         if (vflux_flag(n)) then
-            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
-                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
-            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
-         endif
-      end do
-   end do
-!jw   !$OMP END PARALLEL DO
-
    do n = 1, tracer_cnt
       if (vflux_flag(n)) then
-         sum_tmp = sum(local_sums(:,n))
-         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
+         do iblock = 1,nblocks_clinic
+            WORK(:,:,iblock) = TAREA(:,:,iblock) * RCALCT(:,:,iblock) * &
+               p5 * (SURF_VALS_OLD(:,:,n,iblock) + SURF_VALS_CUR(:,:,n,iblock))
+         end do
+         surf_avg(n) = global_sum(WORK, distrb_clinic, field_loc_center) / area_t
       endif
    end do
 
-   if(my_task == master_task) then
+   if (my_task == master_task) then
       write(stdout,*)' Calculating surface tracer averages'
       do n = 1, tracer_cnt
          if (vflux_flag(n)) then

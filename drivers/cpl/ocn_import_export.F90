@@ -9,6 +9,7 @@ module ocn_import_export
    use POP_IOUnitsMod
    use POP_MCT_vars_mod
    use POP_CplIndices
+   use POP_CplIndicesAux
 
    use seq_flds_mod
    use seq_timemgr_mod
@@ -24,6 +25,7 @@ module ocn_import_export
    use domain,            only: distrb_clinic, POP_haloClinic
    use exit_mod
    use forcing_shf,       only: SHF_QSW
+   use mcog
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
    use forcing_coupled,   only: ncouple_per_day,  &
@@ -118,7 +120,8 @@ contains
       message
  
    integer (int_kind) ::  &
-      i,j,k,n,iblock
+      i,j,k,n,iblock,     &
+      nbin, ncol
 
    real (r8), dimension(nx_block,ny_block) ::  &
       WORKB
@@ -129,6 +132,13 @@ contains
    real (r8) ::  &
       m2percm2,  &
       gsum
+
+   real (r8) ::     &
+      mcog_scale_factor, &! scale factor for renormalizing swpen0...5
+      mcog_swpen_sum      ! sum of swpen from coupler over all categories
+
+   logical (log_kind) ::  &
+      lmcog_debug = .false.
 
    type (block) :: this_block ! local block info
 
@@ -180,7 +190,57 @@ contains
 !
 !-----------------------------------------------------------------------
 
-      call rotate_wind_stress(WORK1, WORK2)
+   call rotate_wind_stress(WORK1, WORK2)
+
+   if (lmcog) then
+
+!-----------------------------------------------------------------------
+!  unpack ice category fractions
+!-----------------------------------------------------------------------
+     IFRAC_MCOG_ALL = c0
+     n = 0
+     do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+       do i=this_block%ib,this_block%ie
+         n = n + 1
+         do ncol = 0,ncols_MCOG
+           IFRAC_MCOG_ALL(i,j,ncol,iblock) = x2o(indices_x2o_ifrac(ncol)%index,n)
+         enddo
+       enddo ! i
+       enddo ! j
+     enddo ! iblock
+
+!-----------------------------------------------------------------------
+!  bin IFRAC_MCOG
+!-----------------------------------------------------------------------
+     IFRAC_MCOG = c0
+     DIFRAC     = c0
+     n = 0
+     do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+       do i=this_block%ib,this_block%ie
+         n = n + 1
+         do ncol = 0,ncols_MCOG
+           nbin = MCOG_ocn_bins(ncol)
+           IFRAC_MCOG(i,j,nbin,iblock) = IFRAC_MCOG(i,j,nbin,iblock) +  &
+                                         IFRAC_MCOG_ALL(i,j,ncol,iblock)
+           DIFRAC(i,j,iblock) = DIFRAC(i,j,iblock) +  &
+                                         IFRAC_MCOG_ALL(i,j,ncol,iblock)
+         enddo
+         DIFRAC(i,j,iblock) = DIFRAC(i,j,iblock) - c1
+       enddo ! i
+       enddo ! j
+     enddo ! iblock
+
+!-----------------------------------------------------------------------
+!   zero out SWPEN_MCOG prior to accumulating over bins
+!-----------------------------------------------------------------------
+    SWPEN_MCOG = c0
+    DSWPEN = c0
+
+   endif !lmcog
 
    n = 0
    do iblock = 1, nblocks_clinic
@@ -196,6 +256,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
+      if (lmcog_debug) then
+          write(stdout,*) '(ocn_import_mct) reset SHF_QSW_MCOG from coupler field SWPEN_MCOG'
+      endif
 
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
@@ -217,6 +280,55 @@ contains
          LWUP_F(i,j,iblock)  = x2o(index_x2o_Foxx_lwup,n)
          LWDN_F(i,j,iblock)  = x2o(index_x2o_Faxa_lwdn,n)
          MELTH_F(i,j,iblock) = x2o(index_x2o_Fioi_melth,n)
+
+         if (lmcog) then
+!-----------------------------------------------------------------------
+! All sea ice category fluxes weighted by ice fraction, so normalize
+! by the coupler time mean ice fraction.
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+! Unpack and normalize category 
+!      * penetrating shortwave fluxes and evaluate
+!      * fresh water fluxes and evaluate
+!      * salt fluxes and evaluate
+! Compute diagnostic arrays for consistency (should be order roundoff).
+!-----------------------------------------------------------------------
+           do ncol = 0,ncols_MCOG
+             nbin = MCOG_ocn_bins(ncol)
+             SWPEN_MCOG(i,j,nbin,iblock) = SWPEN_MCOG(i,j,nbin,iblock) +  &
+                                           x2o(indices_x2o_swpen(ncol)%index,n) &
+                                  / max(IFRAC_MCOG_ALL(i,j,ncol,iblock),minicefrac)
+           enddo ! ncol
+
+!-----------------------------------------------------------------------
+! Rescale shortwave fluxes so total equals original aggregate
+!-----------------------------------------------------------------------
+           mcog_swpen_sum  = c0
+           do nbin = 0,nbins_MCOG-1
+              mcog_swpen_sum = mcog_swpen_sum + SWPEN_MCOG(i,j,nbin,iblock) * IFRAC_MCOG(i,j,nbin,iblock)
+           enddo
+
+           WORKB(i,j        ) = x2o(index_x2o_Foxx_swnet,n)
+           mcog_scale_factor  = WORKB(i,j) / max(mcog_swpen_sum,minicefrac)
+           do nbin = 0,nbins_MCOG-1
+           SWPEN_MCOG(i,j,nbin,iblock) = SWPEN_MCOG(i,j,nbin,iblock) * mcog_scale_factor
+           DSWPEN(i,j,iblock) = DSWPEN(i,j,iblock)  &
+                              + SWPEN_MCOG(i,j,nbin,iblock) * IFRAC_MCOG(i,j,nbin,iblock)
+           enddo ! nbin
+           DSWPEN(i,j,iblock) = DSWPEN(i,j,iblock) - WORKB(i,j)
+
+!-----------------------------------------------------------------------
+! Unpack shortwave surface heat flux forcing array and convert to appropriate units.
+! Unpack and normalize category ice/ocean heat fluxes 
+! Compute diagnostic array for consistency (should be order roundoff).
+!-----------------------------------------------------------------------
+           do nbin = 0,nbins_MCOG-1
+             SHF_QSW_MCOG(i,j,nbin,iblock) = SWPEN_MCOG(i,j,nbin,iblock) * &
+                 RCALCT(i,j,iblock)*hflux_factor  !  convert from W/m**2
+           enddo ! nbin
+
+         endif !lmcog
 
          WORKB(i,j       ) = x2o(index_x2o_Si_ifrac,n)
          IFRAC(i,j,iblock) = WORKB(i,j) * RCALCT(i,j,iblock)

@@ -202,12 +202,22 @@ MODULE ecosys_parms
   !---------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-       DOC_reminR  = (c1/250.0_r8) * dps,          & ! rate for semi-labile DOC 1/250days
-       DON_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DON 1/160days
-       DOFe_reminR = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOFe 1/160days
-       DOP_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOP 1/160days  
-       DONr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DON 1/2.5yrs
-       DOPr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DOP 1/2.5yrs
+       DOC_reminR_light  = (c1/250.0_r8) * dps,          & ! remin rate for semi-labile DOC 1/250days
+       DON_reminR_light  = (c1/160.0_r8) * dps,          & ! remin rate for semi-labile DON 1/160days
+       DOFe_reminR_light = (c1/160.0_r8) * dps,          & ! remin rate for semi-labile DOFe 1/160days
+       DOP_reminR_light  = (c1/160.0_r8) * dps,          & ! remin rate for semi-labile DOP 1/160days  
+       DONr_reminR_light = (c1/(365.0_r8*2.5_r8)) * dps, & ! remin rate for refrac DON 1/2.5yrs
+       DOPr_reminR_light = (c1/(365.0_r8*2.5_r8)) * dps    ! remin rate for refrac DOP 1/2.5yrs
+
+  REAL(KIND=r8), PARAMETER :: &
+       DOC_reminR_dark   = DOC_reminR_light * 0.0685_r8,   & ! remin rate in the dark
+       DON_reminR_dark   = DON_reminR_light * 0.1_r8,      & ! remin rate in the dark
+       DOFe_reminR_dark  = DOFe_reminR_light * 0.05_r8,    & ! remin rate in the dark
+       DOP_reminR_dark   = DOP_reminR_light * 0.05_r8,     & ! remin rate in the dark
+       DONr_reminR_dark  = (c1/(365.0_r8*670.0_r8)) * dps, & ! remin rate in the dark
+       DOPr_reminR_dark  = (c1/(365.0_r8*460.0_r8)) * dps    ! remin rate in the dark
+
+  REAL(KIND=r8), PARAMETER :: &
        DONrefract = 0.08_r8,                       & ! fraction of DON to refractory pool
        DOPrefract = 0.03_r8                          ! fraction of DOP to refractory pool
 

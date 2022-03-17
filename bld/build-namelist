@@ -1172,6 +1172,14 @@ if (not $nl->get_value('niw_energy_file')) {
 }
 
 ##########################################
+# namelist group: mcog_nml               #
+##########################################
+
+add_default($nl,'lmcog');
+add_default($nl,'ncols_MCOG');
+add_default($nl,'lmcog_debug');
+
+##########################################
 # namelist group: passive_tracers_on_nml #
 ##########################################
 
@@ -1840,6 +1848,26 @@ if ($lniw_mixing =~ /true/) {
   }
 }
 
+# 1.f add mcog-specific fields to tavg_contents file
+my $lmcog = $nl->get_value('lmcog');
+if ($lmcog =~ /true/) {
+  $file = "mcog_tavg_contents";
+  my $mcog_tavg_file = "${CASEBUILD}/pop2conf/$file";
+  if (-f "$my_path/$file") {
+    $sysmod = "cp -fp ${my_path}/$file $mcog_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  } else {
+    if (-f "${CODEROOT}/ocn/pop2/input_templates/$file") {
+      $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file $mcog_tavg_file";
+      system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+    }
+  }
+  if (-f "$mcog_tavg_file") {
+  $sysmod = "cat $mcog_tavg_file >> $pop_tavg_file";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  }
+}
+
 #-------------------------
 # 2. budget tavg contents
 #-------------------------
@@ -1861,6 +1889,11 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
 #-------------------------
 # 3. tracer tavg contents
 #-------------------------
+my @OCN_TRACER_MODULES = @OCN_TRACER_MODULES;
+if ($lmcog) {
+  push(@OCN_TRACER_MODULES, "mcog");
+}
+
 for my $module (@OCN_TRACER_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
@@ -1972,6 +2005,7 @@ my @groups = qw(domain_nml
                 context_nml
                 overflows_nml
                 niw_nml
+                mcog_nml
                 passive_tracers_on_nml
                 filter_nml);
 
@@ -2588,10 +2622,12 @@ sub module_tavg_script_args() {
   }
   if ($module eq "mcog") {
     use List::Util qw( max );
-    my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
-    my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
-    my $mcog_ncols = @mcog_col_to_bin;
-    my $mcog_nbins = max @mcog_col_to_bin;
+#    my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+#    my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+#    my $mcog_ncols = @mcog_col_to_bin;
+#    my $mcog_nbins = max @mcog_col_to_bin;
+    my $mcog_ncols = 5;
+    my $mcog_nbins = 5;
     return ($nl->get_variable_value("mcog_nml", "lmcog_debug"),
             $mcog_ncols,
             $mcog_nbins);

@@ -1558,8 +1558,9 @@
 !
 !-----------------------------------------------------------------------
 
+   allocate(IOBUFD(nx_global,ny_global))
    if (my_task == master_task) then
-      allocate(IOBUFD(nx_global,ny_global))
+      !allocate(IOBUFD(nx_global,ny_global))
       read(data_file%id(1),rec=start_record) IOBUFD
    endif
 
@@ -1572,7 +1573,8 @@
    call scatter_global(DBL2D, IOBUFD, master_task, distrb_clinic, &
                        field_loc, field_type)
 
-   if (my_task == master_task) deallocate(IOBUFD)
+!   if (my_task == master_task) deallocate(IOBUFD)
+   deallocate(IOBUFD)
 #endif
 
 !-----------------------------------------------------------------------

@@ -78,6 +78,7 @@
    use timers, only: init_timers
    use registry
    use qflux_mod, only: init_qflux
+   use mcog
    use niw_mixing
    use tidal_mixing
    use step_mod, only: init_step
@@ -301,6 +302,14 @@
          'init_phase1: error in init_topostress')
       return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize mcog
+!
+!-----------------------------------------------------------------------
+
+   call init_mcog
 
 !-----------------------------------------------------------------------
 !

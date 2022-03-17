@@ -42,6 +42,7 @@
    use forcing_sfwf
    use forcing_ws, only: ws_data_type
    use forcing_fields
+   use mcog
    use timers
 
    !*** ccsm
@@ -751,6 +752,9 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
+
+   integer (int_kind) :: ncol,  &! category index for mcog
+                         nbin
  
 !-----------------------------------------------------------------------
 !
@@ -774,7 +778,7 @@
                              RCALCT(:,:,iblock)*hflux_factor 
    enddo
    !$OMP END PARALLEL DO
-                                        
+
 !-----------------------------------------------------------------------
 !
 !  combine freshwater flux components
@@ -871,7 +875,7 @@
       if  (lms_balance .and. sfwf_formulation /= 'partially-coupled' ) then
        call ms_balancing (STF(:,:,2,:),EVAP_F, PREC_F, MELT_F,ROFF_F,IOFF_F,   &
                           SALT_F, QFLUX, 'salt')
-      endif
+      endif ! lms_balance and partially-coupled
  
    endif
  
@@ -880,6 +884,11 @@
    do iblock = 1, nblocks_clinic
 
       SHF_QSW_RAW(:,:,iblock) = SHF_QSW(:,:,iblock)
+      if( lmcog ) then
+        do nbin=0,nbins_MCOG-1
+          SHF_QSW_RAW_MCOG(:,:,nbin,iblock) = SHF_QSW_MCOG(:,:,nbin,iblock)
+        enddo
+      endif ! lmcog
 
       if ( shf_formulation == 'partially-coupled' ) then
         SHF_COMP(:,:,iblock,shf_comp_cpl) = STF(:,:,1,iblock) 
@@ -887,10 +896,23 @@
           SHF_COMP(:,:,iblock,shf_comp_cpl) =   &
                   SHF_COMP(:,:,iblock,shf_comp_cpl) * MASK_SR(:,:,iblock)
           SHF_QSW(:,:,iblock) = SHF_QSW(:,:,iblock) * MASK_SR(:,:,iblock)
+
+          if (lmcog) then   
+           do nbin=0,nbins_MCOG-1
+             SHF_QSW_MCOG(:,:,nbin,iblock) = SHF_QSW_MCOG(:,:,nbin,iblock) * MASK_SR(:,:,iblock)
+           enddo
+          endif ! lmcog
+
         endif
       endif
  
       SHF_COMP(:,:,iblock,shf_comp_qsw) = SHF_QSW(:,:,iblock)
+
+      if( lmcog ) then
+        do nbin=0,nbins_MCOG-1
+          SHF_QSW_SAVE_MCOG(:,:,nbin,iblock) = SHF_QSW_MCOG(:,:,nbin,iblock)
+        enddo ! nbin
+      endif ! lmcog
 
       if ( sfwf_formulation == 'partially-coupled' ) then
 
@@ -1027,6 +1049,7 @@
                    + SHF_COMP(:,:,iblock,shf_comp_cpl)
      enddo
      !$OMP END PARALLEL DO
+
    endif
 
    if ( sfwf_formulation == 'partially-coupled' ) then
@@ -1188,6 +1211,18 @@
 
 !EOP
 !BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: ncol, nbin
+
+   character (char_len) :: string
+
+
 !-----------------------------------------------------------------------
 !
 !  update halos for all coupler fields
@@ -1197,6 +1232,7 @@
    errorCode = POP_Success
 
 #if CCSMCOUPLED
+
    call POP_HaloUpdate(SNOW_F,POP_haloClinic,          &
                        POP_gridHorzLocCenter,          &
                        POP_fieldKindScalar, errorCode, &
@@ -1339,6 +1375,100 @@
          'update_ghost_cells_coupler: error updating IFRAC')
       return
    endif
+
+   if (lmcog) then
+
+     if (lmcog_debug) call document ('pop_set_coupled_forcing','halo update SHF_QSW_MCOG')
+
+!-----------------------------------------------------------------------
+!   SHF_QSW_MCOG halo updates
+!-----------------------------------------------------------------------
+
+     do nbin=0,nbins_MCOG-1
+       call POP_HaloUpdate(SHF_QSW_MCOG(:,:,nbin,:),POP_haloClinic, &
+                           POP_gridHorzLocCenter,                   &
+                           POP_fieldKindScalar, errorCode,          &
+                           fillValue = 0.0_POP_r8                   )
+
+       if (errorCode /= POP_Success) then
+          string = 'update_ghost_cells_coupler: error updating SHF_QSW_MCOG'
+          call POP_ErrorSet(errorCode, trim(string))
+          return
+       endif
+     enddo ! nbin
+
+!-----------------------------------------------------------------------
+!   SHF_QSW_SAVE_MCOG halo updates
+!-----------------------------------------------------------------------
+
+     do nbin=0,nbins_MCOG-1
+       call POP_HaloUpdate(SHF_QSW_SAVE_MCOG(:,:,nbin,:),POP_haloClinic, &
+                           POP_gridHorzLocCenter,                   &
+                           POP_fieldKindScalar, errorCode,          &
+                           fillValue = 0.0_POP_r8                   )
+
+       if (errorCode /= POP_Success) then
+          string = 'update_ghost_cells_coupler: error updating SHF_QSW_SAVE_MCOG'
+          call POP_ErrorSet(errorCode, trim(string))
+          return
+       endif
+     enddo ! nbin
+
+!-----------------------------------------------------------------------
+!   IFRAC_MCOG halo updates (IFRAC_MCOG_ALL halo update not needed)
+!-----------------------------------------------------------------------
+     do nbin=0,nbins_MCOG-1
+       call POP_HaloUpdate(IFRAC_MCOG(:,:,nbin,:),POP_haloClinic, &
+                           POP_gridHorzLocCenter,                 &
+                           POP_fieldKindScalar, errorCode,        &
+                           fillValue = 0.0_POP_r8                 )
+
+       if (errorCode /= POP_Success) then
+          string = 'update_ghost_cells_coupler: error updating IFRAC_MCOG'
+          call POP_ErrorSet(errorCode, trim(string))
+          return
+       endif
+     enddo ! nbin
+
+     call POP_HaloUpdate(DIFRAC,POP_haloClinic,          &
+                         POP_gridHorzLocCenter,          &
+                         POP_fieldKindScalar, errorCode, &
+                         fillValue = 0.0_POP_r8)
+
+     if (errorCode /= POP_Success) then
+        string = 'update_ghost_cells_coupler: error updating DIFRAC'
+        call POP_ErrorSet(errorCode, trim(string))
+        return
+     endif
+
+!-----------------------------------------------------------------------
+!   SWPEN_MCOG halo updates
+!-----------------------------------------------------------------------
+     do nbin=0,nbins_MCOG-1
+       call POP_HaloUpdate(SWPEN_MCOG(:,:,nbin,:),POP_haloClinic, &
+                           POP_gridHorzLocCenter,                 &
+                           POP_fieldKindScalar, errorCode,        &
+                           fillValue = 0.0_POP_r8                 )
+
+       if (errorCode /= POP_Success) then
+        string = 'update_ghost_cells_coupler: error updating SWPEN_MCOG'
+        call POP_ErrorSet(errorCode, trim(string))
+        return
+       endif
+     enddo ! nbin
+
+     call POP_HaloUpdate(DSWPEN,POP_haloClinic,          &
+                         POP_gridHorzLocCenter,          &
+                         POP_fieldKindScalar, errorCode, &
+                         fillValue = 0.0_POP_r8)
+
+     if (errorCode /= POP_Success) then
+        string = 'update_ghost_cells_coupler: error updating DSWPEN'
+        call POP_ErrorSet(errorCode, trim(string))
+        return
+     endif
+
+   endif ! mcog
 
    call POP_HaloUpdate(ATM_PRESS,POP_haloClinic,       &
                        POP_gridHorzLocCenter,          &

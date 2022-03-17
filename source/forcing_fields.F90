@@ -18,6 +18,7 @@ module forcing_fields
    use blocks,      only: nx_block, ny_block
    use constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
+   use mcog_forcing_fields
       
    implicit none
    save
@@ -40,7 +41,6 @@ module forcing_fields
       LWDN_F = c0,       &! longwave heat flux dn from cpl (W/m2   )
       MELTH_F= c0         ! melt     heat flux    from cpl (W/m2   )
 
-
    integer(kind=int_kind), public :: &
       ATM_CO2_PROG_nf_ind = 0, & ! bottom atm level prognostic co2
       ATM_CO2_DIAG_nf_ind = 0    ! bottom atm level diagnostic co2
@@ -55,7 +55,6 @@ module forcing_fields
       public, target :: &
       STF,  &!  surface tracer fluxes
       TFW    ! tracer content in freshwater flux
-
 
    logical (log_kind), public :: &
       lsmft_avail   ! true if SMFT is an available field

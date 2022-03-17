@@ -124,6 +124,8 @@
    use POP_MCT_vars_mod
    use shr_strdata_mod
 #endif
+   use mcog
+   use forcing_fields
 
 ! !INPUT PARAMETERS:
 !-----------------------------------------------------------------------
@@ -388,7 +390,9 @@
       tavg_O2_PRODUCTION,&! tavg id for o2 production
       tavg_O2_CONSUMPTION,&! tavg id for o2 consumption
       tavg_AOU,          &! tavg id for AOU
-      tavg_PAR_avg,      &! tavg id for available radiation avg over mixed layer
+      tavg_PAR_SURF,     &! tavg id for available radiation at sea surface
+      tavg_KPAR,         &! tavg id for attenuation of PAR
+      tavg_PAR_avg,      &! tavg id for available radiation avg over model layer
       tavg_POC_FLUX_IN,  &! tavg id for poc flux into cell
       tavg_POC_PROD,     &! tavg id for poc production
       tavg_POC_REMIN,    &! tavg id for poc remineralization
@@ -408,10 +412,21 @@
 
 
 !-----------------------------------------------------------------------
+! MCOG test variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(0:max_bins_MCOG) :: &
+      tavg_MCOG_PAR_avg
+
+   integer (int_kind) :: &
+      tavg_DPAR_out
+
+!-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      tavg_Chl_TOT,              &! tavg id for total Chl
       tavg_photoC_TOT,           &! tavg id for total C fixation
       tavg_photoC_TOT_zint,      &! tavg id for total C fixation vertical integral
       tavg_photoC_NO3_TOT,       &! tavg id for total C fixation from NO3
@@ -1460,6 +1475,12 @@ contains
    endif
 
 !-----------------------------------------------------------------------
+!  initialize and allocate  MCOG arrays
+!-----------------------------------------------------------------------
+
+   call init_mcog_ecosys
+
+!-----------------------------------------------------------------------
 !  initialize tracers
 !-----------------------------------------------------------------------
 
@@ -1729,10 +1750,12 @@ contains
    integer (int_kind) :: &
       auto_ind,       & ! autotroph functional group index
       zoo_ind,        & ! zooplankton functional group index
+      nbin,           & ! index for looping over MCOG bins
       buf_len           ! how many surface flux fields are stored in ECO_SFLUX_TAVG
 
    character(char_len) :: &
-      sname             ! short-name of tavg variable
+      sname,          & ! short-name of tavg variable
+      lname             ! long-name of tavg variable
 
 !-----------------------------------------------------------------------
 !  2D fields related to surface fluxes
@@ -2044,10 +2067,34 @@ contains
                           units='mmol/m^3', grid_loc='3111',           &
                           coordinates='TLONG TLAT z_t time')
 
+   call define_tavg_field(tavg_PAR_SURF,'PAR_SURF',2,                  &
+                          long_name='PAR at Ocean Surface',            &
+                          units='w/m^2', grid_loc='2110',              &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_KPAR,'KPAR',3,                          &
+                          long_name='attenuation coefficient of PAR',  &
+                          units='1/cm', grid_loc='3114',               &
+                          coordinates='TLONG TLAT z_t_150m time')
+
    call define_tavg_field(tavg_PAR_avg,'PAR_avg',3,                    &
-                          long_name='PAR Average over Model Cell',     &
+                          long_name='PAR Average over Model Layer',    &
                           units='w/m^2', grid_loc='3114',              &
                           coordinates='TLONG TLAT z_t_150m time')
+
+   do nbin=0,nbins_MCOG-1
+      write(sname,'(a,i2.2)') 'MCOG_PAR_avg_', nbin
+      write(lname,'(a,i2.2)') 'PAR Average over Model Layer in MCOG bin ', nbin
+      call define_tavg_field(tavg_MCOG_PAR_avg(nbin), trim(sname), 3,  &
+                             long_name=trim(lname),                    &
+                             units='w/m^2', grid_loc='3114',           &
+                             coordinates='TLONG TLAT z_t_150m time')
+   end do
+
+   call define_tavg_field(tavg_DPAR_out,'DPAR_out',2,                  &
+                          long_name='Differences PAR OUT over Model Layer', &
+                          units='w/m^2', grid_loc='2110',              &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_POC_FLUX_IN,'POC_FLUX_IN',3,            &
                           long_name='POC Flux into Cell',              &
@@ -2178,6 +2225,11 @@ contains
            units='mmol/m^3/s', grid_loc='3114',                            &
            coordinates='TLONG TLAT z_t_150m time')
    end do
+
+   call define_tavg_field(tavg_Chl_TOT,'Chl_TOT',3,                    &
+                          long_name='Total Chlorophyll',               &
+                          units='mg/m^3', grid_loc='3114',             &
+                          coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoC_TOT,'photoC_TOT',3,              &
                           long_name='Total C Fixation',                &
@@ -2452,12 +2504,12 @@ contains
                           units='mmol/m^3/s', grid_loc='3111',         &
                           coordinates='TLONG TLAT z_t time')
 
-   call define_tavg_field(tavg_DONr_REMIN,'DONr_REMIN',3,              &
+   call define_tavg_field(tavg_DONr_remin,'DONr_remin',3,              &
                           long_name='DONr Remineralization',           &
                           units='mmol/m^3/s', grid_loc='3111',         &
                           coordinates='TLONG TLAT z_t time')
 
-   call define_tavg_field(tavg_DOPr_REMIN,'DOPr_REMIN',3,              &
+   call define_tavg_field(tavg_DOPr_remin,'DOPr_remin',3,              &
                           long_name='DOPr Remineralization',           &
                           units='mmol/m^3/s', grid_loc='3111',         &
                           coordinates='TLONG TLAT z_t time')
@@ -2732,6 +2784,10 @@ contains
       KPARdz,         & ! PAR adsorption coefficient (non-dim)
       PAR_avg,        & ! average PAR over mixed layer depth (W/m^2)
       DOC_prod,       & ! production of DOC (mmol C/m^3/sec)
+      DOC_reminR,     & ! remineralization rate (1/sec)
+      DON_reminR,     & ! remineralization rate (1/sec)
+      DOFe_reminR,    & ! remineralization rate (1/sec)
+      DOP_reminR,     & ! remineralization rate (1/sec)
       DOC_remin,      & ! remineralization of DOC (mmol C/m^3/sec)
       DON_remin,      & ! portion of DON remineralized
       DOFe_remin,     & ! portion of DOFe remineralized
@@ -2825,6 +2881,8 @@ contains
       cksi,           & ! constant used in Si quota modification
       O2_PRODUCTION,  & ! O2 production
       O2_CONSUMPTION, & ! O2 consumption
+      DONr_reminR,    & ! remineralization rate (1/sec)
+      DOPr_reminR,    & ! remineralization rate (1/sec)
       DONr_remin,     & ! portion of refractory DON remineralized
       DOPr_remin        ! portion of refractory DOP remineralized
 
@@ -2849,6 +2907,9 @@ contains
       pred_ind,       & ! grazer group index
       kk,             & ! index for looping over k levels
       j                 ! index for looping over ny_block dimension
+
+   integer (int_kind) :: &
+      nbin              ! index for looping over MCOG bins
 
    logical (log_kind) :: &
       lalt_co2_terms    ! are any alt_co2 terms being time averaged
@@ -3060,9 +3121,6 @@ contains
 !  Morel, Maritorena, JGR, Vol 106, No. C4, pp 7163--7180, 2001
 !-----------------------------------------------------------------------
 
-   PAR_in = PAR_out(:,:,bid)
-   where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid)) PAR_in = c0
-
    WORK1 = max(sum(autotrophChl_loc, dim=3), 0.02_r8)
    where (WORK1 < 0.13224_r8)
       KPARdz = 0.000919_r8*(WORK1**0.3536_r8)
@@ -3070,14 +3128,53 @@ contains
       KPARdz = 0.001131_r8*(WORK1**0.4562_r8)
    end where
 
+   call accumulate_tavg_field(KPARdz, tavg_KPAR,bid,k)
+
    if (partial_bottom_cells) then
       KPARdz = KPARdz * DZT(:,:,k,bid)
    else
       KPARdz = KPARdz * dz(k)
    endif
 
-   PAR_out(:,:,bid) = PAR_in * exp(-KPARdz)
-   PAR_avg = PAR_in * (c1 - exp(-KPARdz)) / KPARdz
+   if (lmcog) then
+
+      PAR_in_MCOG(:,:,:,bid) = PAR_out_MCOG(:,:,:,bid)
+      do nbin=0,nbins_MCOG-1
+         where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
+            PAR_in_MCOG(:,:,nbin,bid) = c0
+         endwhere
+      enddo
+
+      WORK1 =  exp(-KPARdz)
+      WORK2 =  (c1 - WORK1) / KPARdz
+
+      do nbin=0,nbins_MCOG-1
+         PAR_out_MCOG(:,:,nbin,bid) = PAR_in_MCOG(:,:,nbin,bid) * WORK1(:,:)
+         PAR_avg_MCOG(:,:,nbin,bid) = PAR_in_MCOG(:,:,nbin,bid) * WORK2(:,:)
+      enddo
+
+      PAR_in           = c0
+      PAR_out(:,:,bid) = c0
+      PAR_avg          = c0
+      do nbin=0,nbins_MCOG-1
+         PAR_out(:,:,bid) = PAR_out(:,:,bid)+PAR_out_MCOG(:,:,nbin,bid)*IFRAC_MCOG(:,:,nbin,bid)
+         PAR_in(:,:)      = PAR_in (:,:)    +PAR_in_MCOG (:,:,nbin,bid)*IFRAC_MCOG(:,:,nbin,bid)
+         PAR_avg(:,:)     = PAR_avg(:,:)    +PAR_avg_MCOG(:,:,nbin,bid)*IFRAC_MCOG(:,:,nbin,bid)
+      enddo
+
+      do nbin=0,nbins_MCOG-1
+         call accumulate_tavg_field(PAR_avg_MCOG(:,:,nbin,bid), tavg_MCOG_PAR_avg(nbin),bid,k)
+      end do
+
+   else ! .not. lmcog
+
+      PAR_in = PAR_out(:,:,bid)
+      where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid)) PAR_in = c0
+
+      PAR_out(:,:,bid) = PAR_in * exp(-KPARdz)
+      PAR_avg = PAR_in * (c1 - exp(-KPARdz)) / KPARdz
+
+   endif ! lmcog
 
 !-----------------------------------------------------------------------
 !  compute terms of carbonate chemistry
@@ -3263,8 +3360,17 @@ contains
       PCmax = autotrophs(auto_ind)%PCref * f_nut * Tfunc
       where (TEMP < autotrophs(auto_ind)%temp_thres) PCmax = c0
 
-      light_lim = (c1 - exp((-c1 * autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg) / &
-                            (PCmax + epsTinv)))
+      if (lmcog) then
+         light_lim = c0
+         WORK1 = -c1 * autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind)/(PCmax + epsTinv)
+         do nbin=0,nbins_MCOG-1
+            light_lim_MCOG(:,:,nbin,bid) = (c1 - exp(WORK1(:,:)*PAR_avg_MCOG(:,:,nbin,bid)))
+            light_lim = light_lim + light_lim_MCOG(:,:,nbin,bid)*IFRAC_MCOG(:,:,nbin,bid)
+         end do
+      else
+         light_lim = (c1 - exp((-c1 * autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg) / &
+                               (PCmax + epsTinv)))
+      endif
       PCphoto(:,:,auto_ind) = PCmax * light_lim
 
       call accumulate_tavg_field(light_lim, tavg_light_lim(auto_ind),bid,k)
@@ -3317,13 +3423,25 @@ contains
 !  GD 98 Chl. synth. term
 !-----------------------------------------------------------------------
 
-      WORK1 = autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg
-      where (WORK1 > c0)
-         pChl = autotrophs(auto_ind)%thetaN_max * PCphoto(:,:,auto_ind) / WORK1
-         photoacc(:,:,auto_ind) = (pChl * VNC / thetaC(:,:,auto_ind)) * autotrophChl_loc(:,:,auto_ind)
-      elsewhere
+      if (lmcog) then
          photoacc(:,:,auto_ind) = c0
-      end where
+         do nbin=0,nbins_MCOG-1
+            WORK1 = autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg_MCOG(:,:,nbin,bid)
+            where (WORK1 > c0)
+               pChl = autotrophs(auto_ind)%thetaN_max * PCmax * light_lim_MCOG(:,:,nbin,bid) / WORK1
+               WORK2= (pChl * VNC / thetaC(:,:,auto_ind)) * autotrophChl_loc(:,:,auto_ind)
+               photoacc(:,:,auto_ind) = photoacc(:,:,auto_ind) + WORK2*IFRAC_MCOG(:,:,nbin,bid)
+            end where
+         end do
+      else ! lmcog
+         WORK1 = autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg
+         where (WORK1 > c0)
+            pChl = autotrophs(auto_ind)%thetaN_max * PCphoto(:,:,auto_ind) / WORK1
+            photoacc(:,:,auto_ind) = (pChl * VNC / thetaC(:,:,auto_ind)) * autotrophChl_loc(:,:,auto_ind)
+         elsewhere
+            photoacc(:,:,auto_ind) = c0
+         end where
+      endif ! lmcog
 
 !-----------------------------------------------------------------------
 !  CaCO3 Production, parameterized as function of small phyto production
@@ -3614,27 +3732,64 @@ contains
       DOFe_prod = DOFe_prod + Qfe(:,:,auto_ind) * (auto_loss_doc(:,:,auto_ind) + auto_graze_doc(:,:,auto_ind))
    end do
 
-   DOC_remin  = DOC_loc  * DOC_reminR
-   DON_remin  = DON_loc  * DON_reminR
-   DOFe_remin = DOFe_loc * DOFe_reminR
-   DOP_remin  = DOP_loc  * DOP_reminR
-
 !-----------------------------------------------------------------------
 !  Refractory remin rate due to photochemistry
 !  below euphotic zone remin rate sharply decrease
 !-----------------------------------------------------------------------
 
-   where (PAR_avg > 1.0_r8)
-      DONr_remin = DONr_loc * DONr_reminR
-      DOPr_remin = DOPr_loc * DOPr_reminR
-   elsewhere
-      DONr_remin = DONr_loc * (c1/(365.0_r8*670.0_r8)) * dps  ! 1/670 yrs
-      DOPr_remin = DOPr_loc * (c1/(365.0_r8*460.0_r8)) * dps  ! 1/460 yrs
-      DOC_remin = DOC_remin * 0.0685_r8
-      DON_remin = DON_remin * 0.1_r8
-      DOFe_remin = DOFe_remin * 0.05_r8
-      DOP_remin = DOP_remin * 0.05_r8
-   end where
+   if (lmcog) then
+
+      DOC_reminR  = c0
+      DON_reminR  = c0
+      DOFe_reminR = c0
+      DOP_reminR  = c0
+      DONr_reminR = c0
+      DOPr_reminR = c0
+
+      do nbin=0,nbins_MCOG-1
+         where (PAR_avg_MCOG(:,:,nbin,bid) > 1.0_r8)
+            DOC_reminR  = DOC_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DOC_reminR_light
+            DON_reminR  = DON_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DON_reminR_light
+            DOFe_reminR = DOFe_reminR + IFRAC_MCOG(:,:,nbin,bid) * DOFe_reminR_light
+            DOP_reminR  = DOP_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DOP_reminR_light
+            DONr_reminR = DONr_reminR + IFRAC_MCOG(:,:,nbin,bid) * DONr_reminR_light
+            DOPr_reminR = DOPr_reminR + IFRAC_MCOG(:,:,nbin,bid) * DOPr_reminR_light
+         elsewhere
+            DOC_reminR  = DOC_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DOC_reminR_dark
+            DON_reminR  = DON_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DON_reminR_dark
+            DOFe_reminR = DOFe_reminR + IFRAC_MCOG(:,:,nbin,bid) * DOFe_reminR_dark
+            DOP_reminR  = DOP_reminR  + IFRAC_MCOG(:,:,nbin,bid) * DOP_reminR_dark
+            DONr_reminR = DONr_reminR + IFRAC_MCOG(:,:,nbin,bid) * DONr_reminR_dark
+            DOPr_reminR = DOPr_reminR + IFRAC_MCOG(:,:,nbin,bid) * DOPr_reminR_dark
+         end where
+      end do
+
+   else ! lmcog
+
+      where (PAR_avg > 1.0_r8)
+         DOC_reminR  = DOC_reminR_light
+         DON_reminR  = DON_reminR_light
+         DOFe_reminR = DOFe_reminR_light
+         DOP_reminR  = DOP_reminR_light
+         DONr_reminR = DONr_reminR_light
+         DOPr_reminR = DOPr_reminR_light
+      elsewhere
+         DOC_reminR  = DOC_reminR_dark
+         DON_reminR  = DON_reminR_dark
+         DOFe_reminR = DOFe_reminR_dark
+         DOP_reminR  = DOP_reminR_dark
+         DONr_reminR = DONr_reminR_dark
+         DOPr_reminR = DOPr_reminR_dark
+      end where
+
+   endif ! lmcog
+
+   DOC_remin  = DOC_loc  * DOC_reminR
+   DON_remin  = DON_loc  * DON_reminR
+   DOFe_remin = DOFe_loc * DOFe_reminR
+   DOP_remin  = DOP_loc  * DOP_reminR
+   DONr_remin = DONr_loc * DONr_reminR
+   DOPr_remin = DOPr_loc * DOPr_reminR
 
 !-----------------------------------------------------------------------
 !  large detritus C
@@ -3711,14 +3866,30 @@ contains
 !  use exponential decay of PAR across model level to compute taper factor
 !-----------------------------------------------------------------------
 
-   where (PAR_out(:,:,bid) < parm_nitrif_par_lim)
-      NITRIF = parm_kappa_nitrif * NH4_loc
-      where (PAR_in > parm_nitrif_par_lim)
-         NITRIF = NITRIF * log(PAR_out(:,:,bid) / parm_nitrif_par_lim) / (-KPARdz)
-      end where
-   elsewhere
+   if (lmcog) then
       NITRIF = c0
-   end where
+      do nbin=0,nbins_MCOG-1
+         where (PAR_out_MCOG(:,:,nbin,bid) < parm_nitrif_par_lim)
+            NITRIF_MCOG(:,:,nbin,bid) = parm_kappa_nitrif * NH4_loc
+            where (PAR_in_MCOG(:,:,nbin,bid) > parm_nitrif_par_lim)
+               NITRIF_MCOG(:,:,nbin,bid) = NITRIF_MCOG(:,:,nbin,bid) *   &
+                       log(PAR_out_MCOG(:,:,nbin,bid) / parm_nitrif_par_lim) / (-KPARdz)
+            end where
+         elsewhere
+            NITRIF_MCOG(:,:,nbin,bid) = c0
+         end where
+         NITRIF = NITRIF + NITRIF_MCOG(:,:,nbin,bid)*IFRAC_MCOG(:,:,nbin,bid)
+      enddo
+   else ! .not. lmcog
+      where (PAR_out(:,:,bid) < parm_nitrif_par_lim)
+         NITRIF = parm_kappa_nitrif * NH4_loc
+         where (PAR_in > parm_nitrif_par_lim)
+            NITRIF = NITRIF * log(PAR_out(:,:,bid) / parm_nitrif_par_lim) / (-KPARdz)
+         end where
+      elsewhere
+         NITRIF = c0
+      end where
+   endif ! lmcog
 
    call accumulate_tavg_field(NITRIF, tavg_NITRIF,bid,k)
 
@@ -3967,6 +4138,7 @@ contains
       call accumulate_tavg_field(WORK1, tavg_AOU,bid,k)
    endif
 
+   if (k == 1) call accumulate_tavg_field(PAR_in, tavg_PAR_SURF,bid,k)
    call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
 
    do zoo_ind = 1, zooplankton_cnt
@@ -3998,6 +4170,13 @@ contains
       call accumulate_tavg_field(auto_agg(:,:,auto_ind), tavg_auto_agg(auto_ind),bid,k)
       call accumulate_tavg_field(photoC(:,:,auto_ind), tavg_photoC(auto_ind),bid,k)
    end do
+
+   if (accumulate_tavg_now(tavg_Chl_TOT)) then
+      do auto_ind = 1, autotroph_cnt
+         WORK1 = TRACER_MODULE_CUR(:,:,k,autotrophs(auto_ind)%Chl_ind)
+         call accumulate_tavg_field(WORK1, tavg_Chl_TOT,bid,k)
+      end do
+   endif
 
    if (accumulate_tavg_now(tavg_photoC_TOT)) then
       WORK1 = sum(photoC, dim=3)
@@ -4082,6 +4261,10 @@ contains
    call accumulate_tavg_field(DOFe_prod, tavg_DOFe_prod,bid,k)
 
    call accumulate_tavg_field(DOFe_remin, tavg_DOFe_remin,bid,k)
+
+   call accumulate_tavg_field(DONr_remin, tavg_DONr_remin,bid,k)
+
+   call accumulate_tavg_field(DOPr_remin, tavg_DOPr_remin,bid,k)
 
    call accumulate_tavg_field(Fe_scavenge, tavg_Fe_scavenge,bid,k)
 
@@ -5992,6 +6175,9 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       WORK1, WORK2 ! temporaries for averages
 
+   integer (int_kind) :: &
+      nbin                       ! index for looping over MCOG bins
+
    real (r8) :: scalar_temp
 
 
@@ -6013,7 +6199,7 @@ contains
 
    scalar_temp = f_qsw_par / hflux_factor
 
-   !$OMP PARALLEL DO PRIVATE(iblock,WORK1,auto_ind,n)
+   !$OMP PARALLEL DO PRIVATE(iblock,WORK1,WORK2,auto_ind,n,nbin)
    do iblock = 1, nblocks_clinic
       STF_MODULE(:,:,:,iblock) = c0
 
@@ -6026,8 +6212,10 @@ contains
       call named_field_set(totChl_surf_nf_ind, iblock, WORK1)
 
       if (ecosys_qsw_distrb_const) then
+         if (lmcog) PAR_out_MCOG(:,:,:,iblock) = SHF_QSW_RAW_MCOG(:,:,:,iblock)
          PAR_out(:,:,iblock) = SHF_QSW_RAW(:,:,iblock)
       else
+         if (lmcog) PAR_out_MCOG(:,:,:,iblock) = SHF_QSW_MCOG(:,:,:,iblock)
          PAR_out(:,:,iblock) = SHF_QSW(:,:,iblock)
       endif
 
@@ -6036,6 +6224,24 @@ contains
       elsewhere
          PAR_out(:,:,iblock) = c0
       end where
+
+      if (lmcog)  then
+         do nbin = 0, nbins_MCOG-1
+            where (LAND_MASK(:,:,iblock))
+               PAR_out_MCOG(:,:,nbin,iblock) = max(c0, scalar_temp * PAR_out_MCOG(:,:,nbin,iblock))
+            elsewhere
+               PAR_out_MCOG(:,:,nbin,iblock) = c0
+            end where
+         enddo
+      endif
+
+      WORK2 = c0
+      do nbin = 0, nbins_MCOG-1
+         WORK2(:,:) = WORK2(:,:) + PAR_out_MCOG(:,:,nbin,iblock)*IFRAC_MCOG(:,:,nbin,iblock)
+      enddo
+      WORK2 = PAR_out(:,:,iblock) - WORK2
+      call accumulate_tavg_field(WORK2, tavg_DPAR_out,iblock,1)
+
    enddo
    !$OMP END PARALLEL DO
 

@@ -161,7 +161,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
     if case.get_value("POP_TAVG_R8"):
         other_cppdefs = other_cppdefs + " -DTAVG_R8 "
 
-    pop_cppdefs = "-DCCSMCOUPLED -DMARBL_TIMING_OPT=CIME" + decomp_cppdefs + \
+    pop_cppdefs = "-DCCSMCOUPLED -DMARBL_TIMING_OPT=CIME -D_NCOL_MCOG=5" + decomp_cppdefs + \
                   other_cppdefs + tracer_cppdefs
 
     #----------------------------------------------------

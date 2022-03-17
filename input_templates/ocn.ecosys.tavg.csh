@@ -91,7 +91,9 @@ $s1  DOFe_remin
 $s1  DOP
 $s1  DOP_remin
 $s1  DONr
+$s1  DONr_remin
 $s1  DOPr
+$s1  DOPr_remin
 $s1  DIN_RIV_FLUX
 $s1  DIP_RIV_FLUX
 $s1  DON_RIV_FLUX
@@ -117,6 +119,10 @@ $s1  Fe_scavenge_rate
 $s1  bSi_form
 $s1  NITRIF
 $s1  DENITRIF
+$s1  POC_REMIN
+$s1  CaCO3_REMIN
+$s1  SiO2_REMIN
+$s1  P_iron_REMIN
 $s1  POC_PROD
 $s1  CaCO3_PROD
 $s1  SiO2_PROD
@@ -149,6 +155,11 @@ $s1  tend_zint_100m_SiO3
 $s1  tend_zint_100m_ALK
 $s1  tend_zint_100m_O2
 $s1  tend_zint_100m_DOC
+$s2  PAR_SURF
+$s1  KPAR
+#  Chl_TOT
+#  photoC_TOT
+#  photoC_TOT_zint
 $s2  CaCO3_form_zint
 $s2  ECOSYS_IFRAC_2
 $s2  ECOSYS_XKW_2
@@ -238,6 +249,7 @@ end
 foreach autotroph ( sp )
    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}CaCO3
+$s2  ${autotroph}CaCO3_SURF
 $s2  ${autotroph}CaCO3_zint_100m
 EOF
 end

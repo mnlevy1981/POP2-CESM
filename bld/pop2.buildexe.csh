@@ -205,6 +205,11 @@ endif
 cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs
 set pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`"
 
+#----------------- MCOG ----------
+set OCN_ICE_MCOG_N = 5
+set pop2defs = "$pop2defs -D_NCOL_MCOG=$OCN_ICE_MCOG_N "
+#----------------- MCOG ----------
+
 cd ${OBJROOT}/ocn/cvmix
 gmake -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a || exit 2
 cd ${OBJROOT}/ocn/obj 

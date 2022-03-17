@@ -2,6 +2,7 @@ module POP_CplIndices
   
   use seq_flds_mod
   use mct_mod
+  use POP_CplIndicesAux
 
   implicit none
 
@@ -116,6 +117,11 @@ contains
     index_x2o_Faxa_dstwet4  = mct_avect_indexra(x2o,'Faxa_dstwet4')
     index_x2o_Sa_co2prog    = mct_avect_indexra(x2o,'Sa_co2prog',perrWith='quiet')
     index_x2o_Sa_co2diag    = mct_avect_indexra(x2o,'Sa_co2diag',perrWith='quiet')
+ 
+!--------------------------------------------------------------------------------
+! always call POP_CplIndicesSetAux, in case there are extra indices to be defined
+!--------------------------------------------------------------------------------
+    call POP_CplIndicesSetAux
 
     call mct_aVect_clean(x2o)
     call mct_aVect_clean(o2x)

@@ -833,6 +833,14 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!--mcog_nml                -->
+<!---------------------------->
+
+<lmcog>.true.</lmcog>
+<lmcog_debug>.false.</lmcog_debug>
+<ncols_MCOG>5</ncols_MCOG>
+
+<!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
 

@@ -30,26 +30,20 @@ endif
 rm -f $CASEROOT/Buildconf/popconf/mcog_tavg_contents
 touch $CASEROOT/Buildconf/popconf/mcog_tavg_contents
 
-@ nbin = 1
+@ nbin = 0
 while ($nbin <= $mcog_nbins)
    set nn = `printf "%02d" $nbin`
-   echo "$stream_debug_var  FRAC_BIN_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   echo "$stream_normal_var  FRACR_BIN_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   echo "$stream_debug_var  QSW_RAW_BIN_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   echo "$stream_normal_var  QSW_BIN_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+   if ($nbin == 0) then
+      echo "$stream_debug_var  IFRAC_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+   else
+      echo "$stream_normal_var  IFRAC_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+   endif
+   echo "$stream_debug_var  SHF_QSW_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+   echo "$stream_debug_var  SWPEN_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
    @ nbin++
 end
 
-@ ncol = 1
-while ($ncol <= $mcog_ncols)
-   set nn = `printf "%02d" $ncol`
-   echo "$stream_debug_var  FRAC_COL_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   echo "$stream_debug_var  FRACR_COL_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   echo "$stream_debug_var  QSW_RAW_COL_$nn" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-   @ ncol++
-end
-
-echo "$stream_debug_var  QSW_RAW_COL_DAGG" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-echo "$stream_debug_var  QSW_RAW_BIN_DAGG" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-echo "$stream_debug_var  FRAC_ADJUST_FACT" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
-echo "$stream_debug_var  FRACR_ADJUST_FACT" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+echo "$stream_debug_var  DIFRAC" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+echo "$stream_debug_var  DSWPEN" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+echo "$stream_debug_var  SUM_NBINS_IFRAC" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents
+echo "$stream_debug_var  SUM_NBINS_SWPEN" >> $CASEROOT/Buildconf/popconf/mcog_tavg_contents

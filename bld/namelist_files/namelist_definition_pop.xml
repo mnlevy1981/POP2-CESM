@@ -3886,6 +3886,52 @@ Default: 'bin'
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: mcog_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lmcog"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating multiple-column ocean grid parameterization
+
+Default: .false.
+</entry>
+
+<entry
+id="lmcog_debug"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating debugging statements in multiple-column ocean grid parameterization
+
+Default: .false.
+</entry>
+
+<entry
+id="ncols_MCOG"
+type="integer"
+category="mcog"
+group="mcog_nml" >
+number of columns in the multiple-column ocean grid parameterization
+
+Default: 5
+</entry>
+
+<entry
+id="MCOG_OCN_bins"
+type="integer(10)"
+category="mcog"
+group="mcog_nml" >
+number of columns in the multiple-column ocean grid parameterization
+
+</entry>
+
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: tavg_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
