@@ -272,6 +272,27 @@ Contains
     call io_read_fallback_register_tracer(tracername='diazP', &
        fallback_opt='alt_field', alt_tracername='diazC', scalefactor=0.32_r8/117.0_r8)
 
+    call io_read_fallback_register_tracer(tracername='coccoC', &
+       fallback_opt='alt_field', alt_tracername='spC', scalefactor=0.07_r8)
+
+    call io_read_fallback_register_tracer(tracername='coccoChl', &
+       fallback_opt='alt_field', alt_tracername='spChl', scalefactor=0.07_r8)
+
+    call io_read_fallback_register_tracer(tracername='coccoP', &
+       fallback_opt='alt_field', alt_tracername='spP', scalefactor=0.07_r8)
+
+    call io_read_fallback_register_tracer(tracername='coccoFe', &
+       fallback_opt='alt_field', alt_tracername='spFe', scalefactor=0.07_r8)
+
+    call io_read_fallback_register_tracer(tracername='coccoCaCO3', &
+       fallback_opt='alt_field', alt_tracername='spCaCO3', scalefactor=c1)
+
+    call io_read_fallback_register_tracer(tracername='microzooC', &
+       fallback_opt='alt_field', alt_tracername='zooC', scalefactor=0.56_r8)
+
+    call io_read_fallback_register_tracer(tracername='mesozooC', &
+       fallback_opt='alt_field', alt_tracername='zooC', scalefactor=0.44_r8)
+
     call io_read_fallback_register_field(fieldname='MARBL_PH_SURF', &
        fallback_opt='const', const_val=c0)
 
