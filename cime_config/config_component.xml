@@ -206,7 +206,7 @@
 
   <entry id="OCN_BGC_CONFIG">
     <type>char</type>
-    <valid_values>latest,cesm2.0</valid_values>
+    <valid_values>latest,latest+4p2z,cesm2.0</valid_values>
     <default_value>latest</default_value>
     <values>
 	<value compset="POP2%[^_]*ECOCESM20">cesm2.0</value>
