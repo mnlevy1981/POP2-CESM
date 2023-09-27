@@ -41,7 +41,7 @@ module ecosys_forcing_mod
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
-  use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : abio_dic_ind, abio_di14c_ind, di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13ctot_ind, do14ctot_ind
 
@@ -315,10 +315,9 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_init(ciso_on, land_mask,                     &
-                                 marbl_req_surface_flux_forcings,        &
-                                 marbl_req_interior_tendency_forcings,   &
-                                 forcing_nml,                            &
+  subroutine ecosys_forcing_init(base_bio_on, abio_dic_on, ciso_on, land_mask,     &
+                                 marbl_req_surface_flux_forcings,                  &
+                                 marbl_req_interior_tendency_forcings, forcing_nml,&
                                  lhas_riv_flux)
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
@@ -333,6 +332,10 @@ contains
 
     use ecosys_forcing_saved_state_mod, only : lbox_atm_co2, box_atm_co2_init_val
 
+    use c14_atm_forcing_mod, only : c14_atm_forcing_init
+
+    logical,                         intent(in)    :: base_bio_on
+    logical,                         intent(in)    :: abio_dic_on
     logical,                         intent(in)    :: ciso_on
     logical,                         intent(in)    :: land_mask(:,:,:)
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_flux_forcings(:)
@@ -427,6 +430,8 @@ contains
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
     !-----------------------------------------------------------------------
+
+    ! if (.not. base_bio_on) return
 
     gas_flux_forcing_opt  = 'drv'
     gas_flux_forcing_file = 'unknown'
@@ -572,8 +577,18 @@ contains
     end if
 
     if (ciso_on) then
-       call ciso_init_atm_D13_D14()
+       call ciso_init_atm_D13()
     end if
+    if (abio_dic_on .or. ciso_on) then
+    !-------------------------------------------------------------------------
+    !     Set D14C data source
+    !-------------------------------------------------------------------------
+
+      call c14_atm_forcing_init('ecosys_forcing', ciso_atm_d14c_opt, &
+      ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
+      ciso_atm_d14c_filename, ciso_atm_model_year, ciso_atm_data_year)
+
+  end if
 
     ! Set surf_avg for all tracers
     surf_avg(:) = c0
@@ -587,6 +602,15 @@ contains
     surf_avg(alk_ind)         = surf_avg_alk_const
     surf_avg(alk_alt_co2_ind) = surf_avg_alk_const
 
+    ! add surf_avg for abio tracers!
+    if (abio_dic_on) then
+      if (any((/abio_dic_ind, abio_di14c_ind/).eq.0)) then
+        call document(subname, 'abio_dic_ind and abio_di14c_ind must be non-zero')
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+      end if
+      surf_avg(abio_dic_ind) = surf_avg_dic_const
+      surf_avg(abio_di14c_ind) = surf_avg_di14c_const
+   end if
     if (ciso_on) then
        if (any((/di13c_ind, di14c_ind/).eq.0)) then
          call document(subname, 'di13c_ind and di14c_ind must be non-zero')
@@ -1690,6 +1714,8 @@ contains
   !*****************************************************************************
 
   subroutine ecosys_forcing_set_surface_time_varying_forcing_data( &
+      !  base_bio_on,                           &
+       abio_dic_on,                           &
        ciso_on,                               &
        land_mask,                             &
        u10_sqr,                               &
@@ -1713,8 +1739,8 @@ contains
     use domain                , only : POP_haloClinic
     use domain                , only : blocks_clinic
     use blocks                , only : get_block
-    use pop_constants             , only : field_loc_center
-    use pop_constants             , only : field_type_scalar
+    use pop_constants         , only : field_loc_center
+    use pop_constants         , only : field_type_scalar
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get
@@ -1729,6 +1755,8 @@ contains
 
     implicit none
 
+    ! logical,   intent(in)  :: base_bio_on
+    logical,   intent(in)  :: abio_dic_on
     logical,   intent(in)  :: ciso_on
     logical,   intent(in)  :: land_mask                (nx_block,ny_block,max_blocks_clinic)
     real (r8), intent(in)  :: u10_sqr                  (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
@@ -1773,11 +1801,14 @@ contains
     call timer_start(ecosys_pre_sflux_timer)
 
     !-----------------------------------------------------------------------
-    ! Update carbon isotope atmosphere deltas if appropriate
+    ! Update C14 isotope atmosphere deltas if appropriate
     !-----------------------------------------------------------------------
 
     if (ciso_on) then
-       call ciso_update_atm_d13C_D14C(land_mask, d13c, d14c)
+       call ciso_update_atm_d13C(d13c)
+    end if
+    if (abio_dic_on .or. ciso_on) then
+      call update_atm_d14C(land_mask, d14c)
     end if
 
     !-----------------------------------------------------------------------
@@ -2298,59 +2329,112 @@ contains
 
   !***********************************************************************
 
-  subroutine ciso_update_atm_d13C_D14C (land_mask, d13C, D14C)
+  subroutine update_atm_d14C (land_mask, d14C)
 
-    ! Updates module variables d13C and D14C (for atmospheric ratios)
-
-    use grid,                   only : TAREA
+    use c14_atm_forcing_mod,    only : c14_atm_forcing_update_data, c14_atm_forcing_get_data
+    use blocks,                 only : get_block
     use domain,                 only : blocks_clinic
     use domain,                 only : distrb_clinic
-    use blocks,                 only : get_block
+    use grid,                   only : TAREA
     use global_reductions,      only : global_sum
-    use forcing_timeseries_mod, only : forcing_timeseries_dataset_update_data
-    use forcing_timeseries_mod, only : forcing_timeseries_dataset_get_var
-    use c14_atm_forcing_mod,    only : c14_atm_forcing_update_data, c14_atm_forcing_get_data
 
     implicit none
 
     logical,   intent(in)  :: land_mask(nx_block, ny_block, max_blocks_clinic)
-    real (r8), intent(out) :: d13C(nx_block, ny_block, max_blocks_clinic)  ! atm 13co2 value
     real (r8), intent(out) :: D14C(nx_block, ny_block, max_blocks_clinic)  ! atm 14co2 value
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_update_atm_d13C_D14C'
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:update_atm_d14C'
     type (block) :: &
          this_block      ! block info for the current block
-
+    real (r8), dimension(max_blocks_clinic) :: &
+         d14c_local_sums, & ! array for holding block sums when calculating global D14C
+         tarea_local_sums   ! array for holding block sums of TAREA when calculating global D14C
     real (r8), dimension(nx_block,ny_block) :: &
          work1, &! local work space
          tfact   ! factor for normalizing sums
-
+    real (r8) :: &
+         d14c_sum_tmp,  & ! temp for local sum of D14C
+         tarea_sum_tmp    ! temp for local sum of TAREA
     integer (int_kind) :: &
          ib,ie,jb,je, &
          iblock  ! index for looping over blocks
 
-    real (r8), dimension(max_blocks_clinic) :: &
-         d14c_local_sums, & ! array for holding block sums when calculating global D14C
-         tarea_local_sums   ! array for holding block sums of TAREA when calculating global D14C
 
-    real (r8) :: &
-         atm_d13C_curr, & ! current value of atm d13C (for file option)
-         d14c_sum_tmp,  & ! temp for local sum of D14C
-         tarea_sum_tmp    ! temp for local sum of TAREA
+    call c14_atm_forcing_update_data
+
+    !-----------------------------------------------------------------------
+    ! Loop over blocks
+    !-----------------------------------------------------------------------
+
+    do iblock = 1, nblocks_clinic
+       !-----------------------------------------------------------------------
+       !  Set D14C
+       !-----------------------------------------------------------------------
+
+      call c14_atm_forcing_get_data(iblock, D14C(:,:,iblock))
+
+      !-----------------------------------------------------------------------
+      ! Save local D14C field for making global mean after end of iblock loop
+      !-----------------------------------------------------------------------
+
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      ib = this_block%ib
+      ie = this_block%ie
+      jb = this_block%jb
+      je = this_block%je
+
+      where (land_mask(:,:,iblock))
+         tfact(:,:) = TAREA(:,:,iblock)
+      elsewhere
+         tfact(:,:) = 0.0_r8
+      endwhere
+
+      work1(:,:) = D14C(:,:,iblock) * tfact(:,:)
+      d14c_local_sums(iblock)  = sum(work1(ib:ie,jb:je))
+      tarea_local_sums(iblock) = sum(tfact(ib:ie,jb:je))
+
+    end do
+
+    !-----------------------------------------------------------------------
+    ! Compute D14C making global mean
+    !-----------------------------------------------------------------------
+
+    d14c_sum_tmp  = sum(d14c_local_sums)
+    tarea_sum_tmp = sum(tarea_local_sums)
+
+    d14c_glo_avg  = global_sum(d14c_sum_tmp ,distrb_clinic) / global_sum(tarea_sum_tmp,distrb_clinic)
+
+  end subroutine update_atm_d14C
+
+  !***********************************************************************
+
+  subroutine ciso_update_atm_d13C (d13C)
+
+    ! Updates module variable d13C (for atmospheric ratios)
+
+    use forcing_timeseries_mod, only : forcing_timeseries_dataset_update_data
+    use forcing_timeseries_mod, only : forcing_timeseries_dataset_get_var
+
+    implicit none
+
+    real (r8), intent(out) :: d13C(nx_block, ny_block, max_blocks_clinic)  ! atm 13co2 value
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_update_atm_d13C'
+
+    integer (int_kind) :: iblock  ! index for looping over blocks
+
+    real (r8) :: atm_d13C_curr  ! current value of atm d13C (for file option)
 
     !-----------------------------------------------------------------------
 
-    work1(:,:) = c0
-    d14c_local_sums(:)  = c0
-    tarea_local_sums(:) = c0
-
     if (trim(ciso_atm_d13c_opt) == 'file') &
       call forcing_timeseries_dataset_update_data(ciso_atm_d13c_forcing_dataset)
-
-    call c14_atm_forcing_update_data
 
     !-----------------------------------------------------------------------
     ! Loop over blocks
@@ -2374,48 +2458,13 @@ contains
           call exit_POP(sigAbort, 'Stopping in ' // subname)
        end select
 
-       !-----------------------------------------------------------------------
-       !  Set D14C
-       !-----------------------------------------------------------------------
-
-       call c14_atm_forcing_get_data(iblock, D14C(:,:,iblock))
-
-       !-----------------------------------------------------------------------
-       ! Save local D14C field for making global mean after end of iblock loop
-       !-----------------------------------------------------------------------
-
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       ib = this_block%ib
-       ie = this_block%ie
-       jb = this_block%jb
-       je = this_block%je
-
-       where (land_mask(:,:,iblock))
-          tfact(:,:) = TAREA(:,:,iblock)
-       elsewhere
-          tfact(:,:) = 0.0_r8
-       endwhere
-
-       work1(:,:) = D14C(:,:,iblock) * tfact(:,:)
-       d14c_local_sums(iblock)  = sum(work1(ib:ie,jb:je))
-       tarea_local_sums(iblock) = sum(tfact(ib:ie,jb:je))
-
     end do
 
-    !-----------------------------------------------------------------------
-    ! Compute D14C making global mean
-    !-----------------------------------------------------------------------
-
-    d14c_sum_tmp  = sum(d14c_local_sums)
-    tarea_sum_tmp = sum(tarea_local_sums)
-
-    d14c_glo_avg  = global_sum(d14c_sum_tmp ,distrb_clinic) / global_sum(tarea_sum_tmp,distrb_clinic)
-
-  end subroutine ciso_update_atm_d13C_D14C
+  end subroutine ciso_update_atm_d13C
 
   !***********************************************************************
 
-  subroutine ciso_init_atm_D13_D14
+  subroutine ciso_init_atm_D13
 
     !---------------------------------------------------------------------
     ! !DESCRIPTION:
@@ -2424,9 +2473,8 @@ contains
     !---------------------------------------------------------------------
 
     use forcing_timeseries_mod, only : forcing_timeseries_init_dataset
-    use c14_atm_forcing_mod,    only : c14_atm_forcing_init
 
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13_D14'
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13'
 
     !-------------------------------------------------------------------------
     !     Set d13C data source
@@ -2456,15 +2504,7 @@ contains
 
     end select
 
-    !-------------------------------------------------------------------------
-    !     Set D14C data source
-    !-------------------------------------------------------------------------
-
-    call c14_atm_forcing_init('ecosys_forcing', ciso_atm_d14c_opt, &
-        ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
-        ciso_atm_d14c_filename, ciso_atm_model_year, ciso_atm_data_year)
-
-  end subroutine ciso_init_atm_D13_D14
+  end subroutine ciso_init_atm_D13
 
   !*****************************************************************************
 

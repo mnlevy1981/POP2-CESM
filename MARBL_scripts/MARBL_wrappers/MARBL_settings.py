@@ -42,6 +42,9 @@ class MARBL_settings_for_POP(object):
         else:
             MARBL_args["grid"] = "CESM_other"
 
+        # MARBL can run in cgs unit system since that is what POP uses
+        MARBL_args["unit_system"] = "cgs"
+
         # If not a startup run, MARBL may want initial bury coefficient from restart file
         if run_type == "startup" and not continue_run:
             MARBL_args["saved_state_vars_source"] = "settings_file"

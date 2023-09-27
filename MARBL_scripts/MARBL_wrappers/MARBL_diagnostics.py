@@ -21,6 +21,8 @@ class MARBL_diagnostics_for_POP(object):
 
         MARBL_args["MARBL_settings"] = MARBL_settings._MARBL_settings
 
+        MARBL_args["unit_system"] = "cgs"
+
         # Import MARBL_diagnostics_file_class, which may come from MARBL_tools or SourceMods/src.pop
         # (i) need MARBL_dir in path for both branches of this if statement because even if
         #     MARBL_diagnostics_file_class.py is in SourceMods, it needs to import MARBL_tools itself

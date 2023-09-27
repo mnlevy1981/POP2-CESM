@@ -55,6 +55,8 @@ module ecosys_tracers_and_saved_state_mod
   integer(int_kind), public :: alk_ind
   integer(int_kind), public :: dic_alt_co2_ind
   integer(int_kind), public :: alk_alt_co2_ind
+  integer(int_kind), public :: abio_dic_ind
+  integer(int_kind), public :: abio_di14c_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
   integer(int_kind), public :: o2_ind
@@ -226,7 +228,10 @@ Contains
       tracer_inputs(n)%scale_factor = c1
       tracer_inputs(n)%default_val  = c0
       select case (trim(module_name(n)))
-        case('ecosys')
+        case('base_biotic')
+          tracer_inputs(n)%filename = init_ecosys_init_file
+          tracer_inputs(n)%file_fmt = init_ecosys_init_file_fmt
+        case('abio')
           tracer_inputs(n)%filename = init_ecosys_init_file
           tracer_inputs(n)%file_fmt = init_ecosys_init_file_fmt
         case('ciso')
@@ -290,6 +295,12 @@ Contains
     call io_read_fallback_register_field(fieldname='MARBL_PH_3D_ALT_CO2', &
        fallback_opt='const', const_val=c0)
 
+    call io_read_fallback_register_tracer(tracername='ABIO_DIC', &
+       fallback_opt='alt_field', alt_tracername='DIC', scalefactor=1.025_r8)
+
+    call io_read_fallback_register_tracer(tracername='ABIO_DI14C', &
+       fallback_opt='alt_field', alt_tracername='DIC', scalefactor=0.9225_r8)
+
     !-----------------------------------------------------------------------
     !  initialize saved state
     !-----------------------------------------------------------------------
@@ -339,7 +350,12 @@ Contains
       ! Is tracer read from restart file or initial condition?
       ! What is the file name and format?
       select case (trim(module_name(n)))
-        case('ecosys')
+        case('base_biotic')
+          init_option = init_ecosys_option
+          ecosys_restart_filename = trim(init_ecosys_init_file)
+          init_file_fmt = init_ecosys_init_file_fmt
+
+        case('abio')
           init_option = init_ecosys_option
           ecosys_restart_filename = trim(init_ecosys_init_file)
           init_file_fmt = init_ecosys_init_file_fmt

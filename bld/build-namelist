@@ -1507,8 +1507,8 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'marbl_settings_file', 'val'=>"$marbl_settings_file");
 
     # Add MARBL vars to ecosys_cfg
-    # Currently only hold onto ciso_on (suppress ciso variables if .false.)
-    for my $varname ('ciso_on') {
+    # Currently only hold onto abio_dic_on ciso_on (suppress ciso variables if .false.)
+    for my $varname ('abio_dic_on', 'ciso_on') {
         $ecosys_cfg{$varname} = `grep $varname $marbl_settings_file | cut -d '=' -f 2 | sed 's/^ //'`;
         chomp $ecosys_cfg{$varname};
     }
@@ -1654,14 +1654,19 @@ if ($ecosys_on eq "TRUE") {
   if ($ecosys_cfg{'ciso_on'} eq '.true.') {
     add_default($nl, 'ciso_atm_d13c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'ciso_atm_d14c_const');
 
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
     if ($ciso_atm_opt eq '\'file\'') {
       add_default($nl, 'ciso_atm_d13c_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
     }
 
+    add_default($nl, 'ciso_atm_model_year');
+    add_default($nl, 'ciso_atm_data_year');
+  }
+  if (($ecosys_cfg{'abio_dic_on'} eq '.true.') or ($ecosys_cfg{'ciso_on'} eq '.true.')) {
+    print "MNL MNL TRUE";
+    add_default($nl, 'ciso_atm_d14c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ciso_atm_d14c_const');
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
     if ($ciso_atm_opt eq '\'lat_bands\'') {
       add_default($nl, 'ciso_atm_d14c_lat_band_vals');
@@ -1669,9 +1674,6 @@ if ($ecosys_on eq "TRUE") {
     if ($ciso_atm_opt eq '\'file\'') {
       add_default($nl, 'ciso_atm_d14c_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
     }
-
-    add_default($nl, 'ciso_atm_model_year');
-    add_default($nl, 'ciso_atm_data_year');
   }
 
   add_default($nl, 'restorable_tracer_names');

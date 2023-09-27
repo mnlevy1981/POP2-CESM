@@ -51,7 +51,7 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : surface_flux_saved_state
   use ecosys_tracers_and_saved_state_mod, only : interior_tendency_saved_state
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
-  use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : abio_dic_ind, abio_di14c_ind, di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : o2_ind, no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13ctot_ind, do14ctot_ind
 
@@ -112,6 +112,8 @@ module ecosys_driver
   character (char_len)               :: ecosys_tadvect_ctype          ! advection method for ecosys tracers
   character (char_len)               :: ecosys_vflux_tadvect_ctype    ! advection method for ecosys tracers with virtual fluxes
   logical   (log_kind) , public      :: ecosys_qsw_distrb_const
+  logical   (log_kind)               :: abio_dic_on
+  logical   (log_kind)               :: base_bio_on
   logical   (log_kind)               :: ciso_on
   logical   (log_kind) , allocatable :: land_mask(:, :, :)
   real      (r8)       , allocatable :: surface_flux_diags(:, :, :, :)
@@ -410,7 +412,9 @@ contains
 
     end do
 
-    ! Is ciso enabled in this run?
+    ! What marbl tracers are being used?
+    call marbl_instances(1)%get_setting('base_bio_on', base_bio_on)
+    call marbl_instances(1)%get_setting('abio_dic_on', abio_dic_on)
     call marbl_instances(1)%get_setting('ciso_on', ciso_on)
     marbl_actual_tracer_cnt = size(marbl_instances(1)%tracer_metadata)
 
@@ -433,6 +437,8 @@ contains
     alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
     dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
     alk_alt_co2_ind = marbl_instances(1)%get_tracer_index('ALK_ALT_CO2')
+    abio_dic_ind = marbl_instances(1)%get_tracer_index('ABIO_DIC')
+    abio_di14c_ind = marbl_instances(1)%get_tracer_index('ABIO_DI14C')
     di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
 
@@ -454,7 +460,9 @@ contains
     ! to ecosys_forcing_init()
     tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_forcing_data_nml')
 
-    call ecosys_forcing_init(ciso_on,                                         &
+    call ecosys_forcing_init(base_bio_on,                                     &
+                             abio_dic_on,                                     &
+                             ciso_on,                                         &
                              land_mask,                                       &
                              marbl_instances(1)%surface_flux_forcings,        &
                              marbl_instances(1)%interior_tendency_forcings,   &
@@ -583,11 +591,10 @@ contains
     ! Register flux_co2 with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, max(1,nblocks_clinic)
-       call marbl_instances(iblock)%surface_flux_output%add_output(           &
-              num_elements = marbl_col_cnt(iblock),                           &
-              field_name   = "flux_co2",                                      &
-              output_id    = flux_co2_id,                                     &
-              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       call marbl_instances(iblock)%add_output_for_GCM(           &
+              num_elements = marbl_col_cnt(iblock),               &
+              field_name   = "flux_co2",                          &
+              output_id    = flux_co2_id)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
                                      ")%surface_flux_output%add_output(flux_co2)"
@@ -600,11 +607,10 @@ contains
     ! Register total_surfChl with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, max(1,nblocks_clinic)
-       call marbl_instances(iblock)%surface_flux_output%add_output(           &
-              num_elements = marbl_col_cnt(iblock),                           &
-              field_name   = "total_surfChl",                                 &
-              output_id    = total_surfChl_id,                                &
-              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       call marbl_instances(iblock)%add_output_for_GCM(           &
+              num_elements = marbl_col_cnt(iblock),               &
+              field_name   = "total_surfChl",                     &
+              output_id    = total_surfChl_id)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
                                      ")%surface_flux_output%add_output(total_surfChl)"
@@ -874,6 +880,7 @@ contains
     !-----------------------------------------------------------------------
 
     call ecosys_forcing_set_surface_time_varying_forcing_data( &
+         abio_dic_on,                     &
          ciso_on,                         &
          land_mask,                       &
          u10_sqr,                         &
