@@ -18,6 +18,10 @@ module forcing_fields
    use blocks,      only: nx_block, ny_block
    use constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
+   
+   ! new imports: 
+   ! use timers
+   use time_management ! defines tday00 and nsteps_per_interval
 
    implicit none
    save
@@ -88,10 +92,10 @@ module forcing_fields
       ATM_COARSE_DUST_FLUX,     &! coarse dust flux from atm from cpl (g/cm2/s)
       SEAICE_DUST_FLUX,         &! coarse dust flux from seaice from cpl (g/cm2/s)
       ATM_BLACK_CARBON_FLUX,    &! black carbon flux from atm from cpl (g/cm2/s)
-      SEAICE_BLACK_CARBON_FLUX   ! black carbon flux from seaice from cpl (g/cm2/s)
+      SEAICE_BLACK_CARBON_FLUX, &! black carbon flux from seaice from cpl (g/cm2/s) 
+      CLOUDFRAC_ISCCP,          &! ISCCP cloud fraction 
+      COSZEN                     ! cosine solar zenith angle
 
-!***********************************************************************
-
- end module forcing_fields
+end module forcing_fields
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

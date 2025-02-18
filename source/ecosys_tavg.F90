@@ -4,350 +4,508 @@
 
  module ecosys_tavg
 
-!BOP
-! !MODULE: ecosys_tavg
-
-! !DESCRIPTION:
-!  This module provides support for writing MARBL diagnostics into POP tavg
-!  files
-!
-!  Written by: Michael Levy, NCAR, Dec 2014
-
-
-! !REVISION HISTORY:
-!  SVN:$Id$
-
-! !USES:
-
-  use kinds_mod             , only : r8
-  use kinds_mod             , only : int_kind
-  use kinds_mod             , only : char_len
-  use tavg                  , only : define_tavg_field
-  use tavg                  , only : accumulate_tavg_field
-  use shr_sys_mod           , only : shr_sys_abort
-  use marbl_interface       , only : marbl_interface_class
-  use marbl_interface_public_types , only : marbl_diagnostics_type
-
-  use ecosys_diagnostics_operators_mod, only : max_marbl_diags_stream_cnt
-
-  implicit none
-  private
-
-  ! !PUBLIC MEMBER FUNCTIONS:
-
-  public :: ecosys_tavg_init
-  public :: ecosys_tavg_accumulate_interior
-  public :: ecosys_tavg_accumulate_surface
-  public :: ecosys_tavg_accumulate_scalar_rmeans
-
-  !-----------------------------------------------------------------------
-  !  define tavg id for interior tendency diagnostics, diagnostics related
-  !  to restoring, surface flux diagnostics, and duplicate surface flux
-  !  variables
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), allocatable :: tavg_ids_interior_tendency(:,:)
-  integer (int_kind), allocatable :: tavg_ids_surface_flux(:,:)
-  integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
-
-  integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
-  integer (int_kind), allocatable :: tavg_ids_scalar_rmean_surface(:)
-
-  !***********************************************************************
-
-contains
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_init(marbl_instance)
-
-    ! !DESCRIPTION:
-    !  call define_tavg_field for all tavg fields
-
-    use ecosys_diagnostics_operators_mod,   only : ecosys_diagnostics_operators_init
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_interior
-
+  !BOP
+  ! !MODULE: ecosys_tavg
+  
+  ! !DESCRIPTION:
+  !  This module provides support for writing MARBL diagnostics into POP tavg
+  !  files
+  !
+  !  Written by: Michael Levy, NCAR, Dec 2014
+  
+  ! !REVISION HISTORY:
+  !  SVN:$Id$
+  
+  ! !USES:
+  
+    use kinds_mod             , only : r8
+    use kinds_mod             , only : int_kind
+    use kinds_mod             , only : char_len
+    use tavg                  , only : define_tavg_field
+    use tavg                  , only : accumulate_tavg_field
+    use shr_sys_mod           , only : shr_sys_abort
+    use marbl_interface       , only : marbl_interface_class
+    use marbl_interface_public_types , only : marbl_diagnostics_type
+    use ecosys_forcing_mod    ,  only : interior_tendency_forcings, surf_shortwave_ind
+    use constants             , only : c0, c1, pi, radius, p5, radian
+    use ecosys_diagnostics_operators_mod, only : max_marbl_diags_stream_cnt
+    use time_management       , only: frac_day
+  
     implicit none
-
-    type(marbl_interface_class)  , intent(in) :: marbl_instance
-
+    private
+  
+    ! !PUBLIC MEMBER FUNCTIONS:
+  
+    public :: ecosys_tavg_init
+    public :: ecosys_tavg_accumulate_interior
+    public :: ecosys_tavg_accumulate_surface
+    public :: ecosys_tavg_accumulate_scalar_rmeans
+  
     !-----------------------------------------------------------------------
-    !  local variables
+    !  define tavg id for interior tendency diagnostics, diagnostics related
+    !  to restoring, surface flux diagnostics, and duplicate surface flux
+    !  variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
-    character(*), parameter :: marbl_diag_file = 'marbl_diagnostics_operators'
-    character(char_len) :: sname, lname
-    integer (int_kind) :: n
-    integer (int_kind) :: rmean_var_cnt
-    !-----------------------------------------------------------------------
+  
+    integer (int_kind), allocatable :: tavg_ids_interior_tendency(:,:)
+    integer (int_kind), allocatable :: tavg_ids_surface_flux(:,:)
+    integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
+  
+    integer (int_kind), public :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer 
+    integer (int_kind) :: tavg_Chl 
+    integer (int_kind) :: tavg_clearsky_Chl ! changed from tavg_SatChl_nocld
+    integer (int_kind) :: tavg_clearsky_Chl_wgt ! changed from tavg_SatChl_weight_nocld
+    integer (int_kind) :: tavg_cloudy_Chl ! changed from tavg_isccp_Chl
+    integer (int_kind) :: tavg_cloudy_Chl_wgt ! changed from tavg_isccp_Chl_weight
+    integer (int_kind) :: tavg_cloudy_Chl_swath ! new
+    integer (int_kind) :: tavg_cloudy_Chl_swath_wgt ! new
+    integer (int_kind) :: tavg_clearsky_Chl_swath
+    integer (int_kind) :: tavg_clearsky_Chl_swath_wgt
+    integer (int_kind) :: tavg_cloudfrac ! changed from tavg_cloudfrac_isccp
+    integer (int_kind) :: tavg_cloudfrac_wgt
+    
+    integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
+    integer (int_kind), allocatable :: tavg_ids_scalar_rmean_surface(:)
+  
+    !***********************************************************************
+  
+  contains
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_init(marbl_instance)
+  
+      ! !DESCRIPTION:
+      !  call define_tavg_field for all tavg fields
+  
+      use ecosys_diagnostics_operators_mod,   only : ecosys_diagnostics_operators_init
+      use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
+      use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_interior
+  
+      implicit none
+  
+      type(marbl_interface_class)  , intent(in) :: marbl_instance
+  
+      !-----------------------------------------------------------------------
+      !  local variables
+      !-----------------------------------------------------------------------
+      character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
+      character(*), parameter :: marbl_diag_file = 'marbl_diagnostics_operators'
+      character(char_len) :: sname, lname
+      integer (int_kind) :: n
+      integer (int_kind) :: rmean_var_cnt
+      !-----------------------------------------------------------------------
+  
+      !-----------------------------------------------------------------------
+      !  1. allocate memory for module variables
+      !  2. Read marbl_diag_file
+      !  3. define tavg fields for MARBL diagnostics
+      !-----------------------------------------------------------------------
+  
+      associate(&
+           interior_tendency => marbl_instance%interior_tendency_diags, &
+           surface_flux      => marbl_instance%surface_flux_diags       &
+           )
+  
+        call ecosys_diagnostics_operators_init(marbl_diag_file, surface_flux, interior_tendency)
+  
+        allocate(tavg_ids_interior_tendency(size(interior_tendency%diags), max_marbl_diags_stream_cnt))
+        allocate(tavg_ids_surface_flux(size(surface_flux%diags), max_marbl_diags_stream_cnt))
+  
+        call ecosys_tavg_define_from_diag(marbl_diags=interior_tendency, &
+             stream_cnt=marbl_diags_stream_cnt_interior, &
+             tavg_ids=tavg_ids_interior_tendency)
+  
+        call ecosys_tavg_define_from_diag(marbl_diags=surface_flux,  &
+             stream_cnt=marbl_diags_stream_cnt_surface, &
+             tavg_ids=tavg_ids_surface_flux)
+  
+      end associate
+  
+      call define_tavg_field(tavg_O2_GAS_FLUX_2,'STF_O2_2',2,             &
+                             long_name='Dissolved Oxygen Surface Flux',   &
+                             units='mmol/m^3 cm/s', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time')
+  
+      call define_tavg_field(tavg_Chl,'totChl',2,              &
+                             long_name='Surface Chlorophyll',   &
+                             units='mg/m^3', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time')
+      
+      call define_tavg_field(tavg_clearsky_Chl,'totChl_clearsky',2,              &
+                             long_name='Satellite-Observed Surface Chlorophyll Without Clouds',   &
+                             units='mg/m^3', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+                             
+      call define_tavg_field(tavg_clearsky_Chl_wgt,'totChl_clearsky_wgt',2,              &
+                             long_name='Weight for Satellite-Observed Surface Chlorophyll Without Clouds',   &
+                             units='none', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+  
+      call define_tavg_field(tavg_cloudy_Chl,'totChl_cloudy',2,              &
+                             long_name='ISCCP-Observed Surface Chlorophyll',   &
+                             units='mg/m^3', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time')
+  
+      call define_tavg_field(tavg_cloudy_Chl_wgt,'totChl_cloudy_wgt',2,              &
+                             long_name='Weight for ISCCP-Observed Surface Chlorophyll',   &
+                             units='none', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time')
+  
+      call define_tavg_field(tavg_cloudy_Chl_swath,'totChl_cloudy_swath',2,              &
+                             long_name='Satellite-Observed Surface Chlorophyll at 1:30pm',   &
+                             units='mg/m^3', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+                             
+      call define_tavg_field(tavg_cloudy_Chl_swath_wgt,'totChl_cloudy_swath_wgt',2,              &
+                             long_name='Weight for Satellite-Observed Surface Chlorophyll Without Clouds at 1:30pm',   &
+                             units='none', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
 
-    !-----------------------------------------------------------------------
-    !  1. allocate memory for module variables
-    !  2. Read marbl_diag_file
-    !  3. define tavg fields for MARBL diagnostics
-    !-----------------------------------------------------------------------
-
-    associate(&
-         interior_tendency => marbl_instance%interior_tendency_diags, &
-         surface_flux      => marbl_instance%surface_flux_diags       &
-         )
-
-      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_flux, interior_tendency)
-
-      allocate(tavg_ids_interior_tendency(size(interior_tendency%diags), max_marbl_diags_stream_cnt))
-      allocate(tavg_ids_surface_flux(size(surface_flux%diags), max_marbl_diags_stream_cnt))
-
-      call ecosys_tavg_define_from_diag(marbl_diags=interior_tendency, &
-           stream_cnt=marbl_diags_stream_cnt_interior, &
-           tavg_ids=tavg_ids_interior_tendency)
-
-      call ecosys_tavg_define_from_diag(marbl_diags=surface_flux,  &
-           stream_cnt=marbl_diags_stream_cnt_surface, &
-           tavg_ids=tavg_ids_surface_flux)
-
-    end associate
-
-    call define_tavg_field(tavg_O2_GAS_FLUX_2,'STF_O2_2',2,             &
-                           long_name='Dissolved Oxygen Surface Flux',   &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior_tendency)
-    allocate(tavg_ids_scalar_rmean_interior(rmean_var_cnt))
-    do n = 1, rmean_var_cnt
-      call define_tavg_field(tavg_ids_scalar_rmean_interior(n), &
-                             marbl_instance%glo_scalar_rmean_interior_tendency(n)%sname, 0)
-    end do
-
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface_flux)
-    allocate(tavg_ids_scalar_rmean_surface(rmean_var_cnt))
-    do n = 1, rmean_var_cnt
-      call define_tavg_field(tavg_ids_scalar_rmean_surface(n), &
-                             marbl_instance%glo_scalar_rmean_surface_flux(n)%sname, 0)
-    end do
-
-  end subroutine ecosys_tavg_init
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_accumulate_surface(marbl_col_to_pop_i, marbl_col_to_pop_j, &
-             STF, marbl_instance, bid)
-
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
-    use ecosys_tracers_and_saved_state_mod, only : o2_ind
-
-    implicit none
-
-    integer,                     intent(in) :: marbl_col_to_pop_i(:)
-    integer,                     intent(in) :: marbl_col_to_pop_j(:)
-    real (r8)                  , intent(in) :: STF(:,:,:)
-    type(marbl_interface_class), intent(in) :: marbl_instance
-    integer,                     intent(in) :: bid
-
-    !-----------------------------------------------------------------------
-
-    ! Accumulate surface_flux_diags
-    call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
-         marbl_col_to_pop_j(:), bid, &
-         marbl_diags = marbl_instance%surface_flux_diags, &
-         marbl_diags_stream_cnt = marbl_diags_stream_cnt_surface, &
-         tavg_ids = tavg_ids_surface_flux, &
-         num_elements = marbl_instance%surface_flux_diags%num_elements)
-
-    call accumulate_tavg_field(STF(:,:,o2_ind), tavg_O2_GAS_FLUX_2, bid, 1)
-
-  end subroutine ecosys_tavg_accumulate_surface
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_accumulate_interior(i, c, marbl_instance, bid)
-
-    use ecosys_diagnostics_operators_mod, only : marbl_diags_stream_cnt_interior
-
-    implicit none
-
-    integer,                     intent(in) :: i, c ! column indices
-    type(marbl_interface_class), intent(in) :: marbl_instance
-    integer,                     intent(in) :: bid ! block index
-
-    !-----------------------------------------------------------------------
-
-    ! Accumulate diagnostics from marbl_interior_tendency_diags
-    call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
-         marbl_diags = marbl_instance%interior_tendency_diags, &
-         marbl_diags_stream_cnt = marbl_diags_stream_cnt_interior, &
-         tavg_ids = tavg_ids_interior_tendency, &
-         num_elements = marbl_instance%interior_tendency_diags%num_elements)
-
-  end subroutine ecosys_tavg_accumulate_interior
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_diags_stream_cnt, tavg_ids, num_elements)
-
-    ! Accumulate diagnostics
-
-    implicit none
-
-    integer, dimension(:)        , intent(in) :: i, c ! column indices
-    integer                      , intent(in) :: bid ! block index
-    type(marbl_diagnostics_type) , intent(in) :: marbl_diags
-    integer, dimension(:)        , intent(in) :: marbl_diags_stream_cnt
-    integer, dimension(:,:)      , intent(in) :: tavg_ids
-    integer                      , intent(in) :: num_elements
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    integer :: m, n
-    !-----------------------------------------------------------------------
-
-    associate(diags => marbl_diags%diags(:))
-
-    do n=1,size(diags)
-      if (allocated(diags(n)%field_2d)) then
-         do m=1,marbl_diags_stream_cnt(n)
-           call accumulate_tavg_field(diags(n)%field_2d(:), tavg_ids(n,m), bid, i(:), c(:))
-         end do
-       else
-         do m=1,marbl_diags_stream_cnt(n)
-           call accumulate_tavg_field(diags(n)%field_3d(:,:), tavg_ids(n,m), bid, i(:), c(:))
-         end do
-       end if
-    end do
-
-    end associate
-
-  end subroutine ecosys_tavg_accumulate_from_diag
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_accumulate_scalar_rmeans(marbl_instance, field_source)
-
-    ! Accumulate diagnostics for scalar running means
-
-    implicit none
-
-    type(marbl_interface_class), intent(in) :: marbl_instance
-    character (*),               intent(in) :: field_source   ! 'interior_tendency' or 'surface_flux'
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    integer :: n
-    !-----------------------------------------------------------------------
-
-    if (trim(field_source) == 'interior_tendency') then
-      do n = 1, size(marbl_instance%glo_scalar_rmean_interior_tendency)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior_tendency(n)%rmean, &
-                                   tavg_ids_scalar_rmean_interior(n))
+      call define_tavg_field(tavg_clearsky_Chl_swath,'totChl_clearsky_swath',2,              &
+                             long_name='Satellite-Observed Surface Chlorophyll at 1:30pm',   &
+                             units='mg/m^3', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+                             
+      call define_tavg_field(tavg_clearsky_Chl_swath_wgt,'totChl_clearsky_swath_wgt',2,              &
+                             long_name='Weight for Satellite-Observed Surface Chlorophyll Without Clouds at 1:30pm',   &
+                             units='none', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+      
+      !! Clouds
+      ! call define_tavg_field(tavg_cloudfrac_modis,'cloudfrac_modis',2,              &
+      !                        long_name='MODIS cloud fraction',   &
+      !                        units='%', grid_loc='2110',      &
+      !                        coordinates='TLONG TLAT time')
+  
+      call define_tavg_field(tavg_cloudfrac,'cloudfrac_isccp',2,              &
+                             long_name='ISCCP cloud fraction',   &
+                             units='%', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time') 
+      
+      call define_tavg_field(tavg_cloudfrac_wgt,'cloudfrac_isccp_wgt',2,              &
+                             long_name='Weight for MODIS and ISCCP cloud fraction',   &
+                             units='%', grid_loc='2110',      &
+                             coordinates='TLONG TLAT time')
+  
+      ! call define_tavg_field(tavg_cloudfrac_modis_swath,'cloudfrac_modis_swath',2,              &
+      !                        long_name='MODIS cloud fraction at 1:30pm',   &
+      !                        units='%', grid_loc='2110',      &
+      !                        coordinates='TLONG TLAT time')
+  
+      ! call define_tavg_field(tavg_cloudfrac_modis_wgt_swath,'cloudfrac_modis_wgt_swath',2,              &
+      !                        long_name='Weight for MODIS cloud fraction at 1:30pm',   &
+      !                        units='%', grid_loc='2110',      &
+      !                        coordinates='TLONG TLAT time')
+  
+  
+      rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior_tendency)
+      allocate(tavg_ids_scalar_rmean_interior(rmean_var_cnt))
+      do n = 1, rmean_var_cnt
+        call define_tavg_field(tavg_ids_scalar_rmean_interior(n), &
+                               marbl_instance%glo_scalar_rmean_interior_tendency(n)%sname, 0)
       end do
-    else
-      do n = 1, size(marbl_instance%glo_scalar_rmean_surface_flux)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface_flux(n)%rmean, &
-                                   tavg_ids_scalar_rmean_surface(n))
+  
+      rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface_flux)
+      allocate(tavg_ids_scalar_rmean_surface(rmean_var_cnt))
+      do n = 1, rmean_var_cnt
+        call define_tavg_field(tavg_ids_scalar_rmean_surface(n), &
+                               marbl_instance%glo_scalar_rmean_surface_flux(n)%sname, 0)
       end do
-    end if
+  
+    end subroutine ecosys_tavg_init
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_accumulate_surface(marbl_col_to_pop_i, marbl_col_to_pop_j, &
+               STF, marbl_instance, bid)
+  
+      use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
+      use ecosys_tracers_and_saved_state_mod, only : o2_ind
+      use named_field_mod,                    only : named_field_get
+      use blocks,                             only : nx_block, ny_block 
+      use domain_size, only: max_blocks_clinic
+      use forcing_fields,                     only : IFRAC, CLOUDFRAC_ISCCP, COSZEN ! , CLOUDFRAC_MODIS
+      use grid,                               only : TLOND, TLAT
+  
+      implicit none
+  
+      integer,                     intent(in) :: marbl_col_to_pop_i(:)
+      integer,                     intent(in) :: marbl_col_to_pop_j(:)
+      real (r8)                  , intent(in) :: STF(:,:,:)
+      type(marbl_interface_class), intent(in) :: marbl_instance
+      integer,                     intent(in) :: bid
+      real (r8)                               :: CHL(nx_block,ny_block) ! total surface chlorophyll conc.
+      real (r8)                               :: no_ice_weight(nx_block, ny_block) ! weight for cloud outputs
+      real (r8)                               :: Chl_sat_weight(nx_block, ny_block) ! weight to mask all cells not viewable by satellite
+      real (r8)                               :: cloud_weight_isccp(nx_block, ny_block) ! cloud weight for ISCCP
+      real (r8)                               :: Chl_sat_weight_isccp(nx_block, ny_block) ! chl weight for ISCCP
+      real (r8)                               :: sat_loc_time ! approximate time of satellite fly-over 
+      real (r8)                               :: sat_lon ! longitude of satellite
+      integer                                 :: swath_width ! swath width of satellite detection in km
+      real (r8)                               :: swath(nx_block, ny_block, max_blocks_clinic) ! swath mask
+      real (r8)                               :: dlon(nx_block, ny_block, max_blocks_clinic) ! distance to satellite longitude in degrees
+      real (r8)                               :: dx(nx_block, ny_block, max_blocks_clinic) ! distance to satellite longitude in km
+      !-----------------------------------------------------------------------
+  
+      ! Accumulate surface_flux_diags
+     call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
+           marbl_col_to_pop_j(:), bid, &
+           marbl_diags = marbl_instance%surface_flux_diags, &
+           marbl_diags_stream_cnt = marbl_diags_stream_cnt_surface, &
+           tavg_ids = tavg_ids_surface_flux, &
+           num_elements = marbl_instance%surface_flux_diags%num_elements)
+  
+     call accumulate_tavg_field(STF(:,:,o2_ind), tavg_O2_GAS_FLUX_2, bid, 1)
+      
+     ! call calculate_satellite_chlor(isccp=.TRUE., sample_swath=.TRUE.)
+     call named_field_get(totChl_surf_nf_ind, bid, CHL(:,:)) 
+     
+     ! Accumulate total chlorophyll field
+     call accumulate_tavg_field(CHL(:,:), tavg_Chl, bid, 1) 
+    
+     ! approximate times of satellite fly-overs (Terra and Aqua): 10:30am and 1:30pm
+     ! calculate the longitude that corresponds with 1:30
+     ! CAM time = POP time - 1
+     sat_loc_time = 13.5_r8 ! approximate time of Aqua satellite fly-over (1:30pm)
+     sat_lon = 15._r8*(sat_loc_time-(frac_day*24._r8))
+     swath = c0
+     dlon = mod((TLOND - sat_lon + 180._r8), 360.0_r8) - 180._r8
+     swath_width = 1668.e5_r8 ! cm
+     dx = dlon * (c1/radian) * COS(TLAT) * radius
+     where (abs(dx)<(swath_width*p5))
+        swath = c1
+     endwhere
+     
+     ! Set weight to 1
+     no_ice_weight = c1
+     ! Calculate day-light weight
+     where (COSZEN(:,:,bid) .le. 0.342_r8)
+        no_ice_weight = c0 
+     endwhere 
+     
+     ! Accumulate weighted cloud fraction (daylight-only)
+     call accumulate_tavg_field(CLOUDFRAC_ISCCP(:,:,bid)*no_ice_weight(:,:), tavg_cloudfrac, bid, 1)
+     call accumulate_tavg_field(no_ice_weight(:,:), tavg_cloudfrac_wgt, bid, 1)
 
-  end subroutine ecosys_tavg_accumulate_scalar_rmeans
+     ! Calculate ice weight 
+     Chl_sat_weight =  no_ice_weight*(c1-IFRAC(:,:,bid))
+  
+     ! Accumulate baseline chlor -- everything except for clouds
+     call accumulate_tavg_field(CHL(:,:)*Chl_sat_weight(:,:), tavg_clearsky_Chl, bid, 1)
+     ! Accumulate weight for baseline chlor 
+     call accumulate_tavg_field(Chl_sat_weight(:,:), tavg_clearsky_Chl_wgt, bid, 1)
+  
+     ! Calculate cloud/ice weight
+     ! Assume that sea ice and clouds have random overlap
+     Chl_sat_weight_isccp = Chl_sat_weight*(c1-(CLOUDFRAC_ISCCP(:,:,bid)*0.01_r8))
+  
+     ! Accumulate cloudy chlor 
+     call accumulate_tavg_field(CHL(:,:)*Chl_sat_weight_isccp(:,:), tavg_cloudy_Chl, bid, 1)
+     call accumulate_tavg_field(Chl_sat_weight_isccp(:,:), tavg_cloudy_Chl_wgt, bid, 1)
+  
+     ! Accumulate variables within satellite swath
+     ! ISCCP Chl 1:30pm
+     call accumulate_tavg_field(CHL(:,:)*Chl_sat_weight_isccp(:,:)*swath(:,:,bid), tavg_cloudy_Chl_swath, bid, 1)
+     ! Weight for ISCCP chl 1:30pm
+     call accumulate_tavg_field(Chl_sat_weight_isccp(:,:)*swath(:,:,bid), tavg_cloudy_Chl_swath_wgt, bid, 1)
+     ! Baseline chlor 1:30pm
+     call accumulate_tavg_field(CHL(:,:)*Chl_sat_weight(:,:)*swath(:,:,bid), tavg_clearsky_Chl_swath, bid, 1)
+     ! Weight for baseline chlor 1:30pm
+     call accumulate_tavg_field(Chl_sat_weight(:,:)*swath(:,:,bid), tavg_clearsky_Chl_swath_wgt, bid, 1)
 
-  !***********************************************************************
-
-  subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
-
-    use tavg, only : tavg_method_avg
-    use constants, only : cmperm
-    use domain_size, only : km
-    use grid, only : zw
-
-    implicit none
-
-    type(marbl_diagnostics_type),      intent(in)    :: marbl_diags
-    integer(int_kind), dimension(:),   intent(in)    :: stream_cnt
-    integer(int_kind), dimension(:,:), intent(inout) :: tavg_ids
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(char_len) :: err_msg, gloc, coords, short_name
-    integer :: m, n, ndims
-
-    real (r8) :: ref_depth_cm
-    integer :: ref_k
-    !-----------------------------------------------------------------------
-
-
-    associate(diags => marbl_diags%diags(:))
-
+    end subroutine ecosys_tavg_accumulate_surface
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_accumulate_interior(i, c, marbl_instance, bid)
+  
+      use ecosys_diagnostics_operators_mod, only : marbl_diags_stream_cnt_interior
+  
+      implicit none
+  
+      integer,                     intent(in) :: i, c ! column indices
+      type(marbl_interface_class), intent(in) :: marbl_instance
+      integer,                     intent(in) :: bid ! block index
+  
+      !-----------------------------------------------------------------------
+  
+      ! Accumulate diagnostics from marbl_interior_tendency_diags
+      call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
+           marbl_diags = marbl_instance%interior_tendency_diags, &
+           marbl_diags_stream_cnt = marbl_diags_stream_cnt_interior, &
+           tavg_ids = tavg_ids_interior_tendency, &
+           num_elements = marbl_instance%interior_tendency_diags%num_elements)
+  
+    end subroutine ecosys_tavg_accumulate_interior
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_diags_stream_cnt, tavg_ids, num_elements)
+  
+      ! Accumulate diagnostics
+  
+      implicit none
+  
+      integer, dimension(:)        , intent(in) :: i, c ! column indices
+      integer                      , intent(in) :: bid ! block index
+      type(marbl_diagnostics_type) , intent(in) :: marbl_diags
+      integer, dimension(:)        , intent(in) :: marbl_diags_stream_cnt
+      integer, dimension(:,:)      , intent(in) :: tavg_ids
+      integer                      , intent(in) :: num_elements
+  
+      !-----------------------------------------------------------------------
+      !  local variables
+      !-----------------------------------------------------------------------
+      integer :: m, n
+      !-----------------------------------------------------------------------
+  
+      associate(diags => marbl_diags%diags(:))
+  
       do n=1,size(diags)
-         if (trim(diags(n)%vertical_grid).eq.'none') then
-            ndims = 2
-            gloc = '2110'
-            coords = 'TLONG TLAT time'
-            ! find layer containing ref_depth, i.e., zw(k-1) .le. ref_depth .lt. zw(k)
-            ref_depth_cm = cmperm * diags(n)%ref_depth
-            if (ref_depth_cm .lt. zw(km)) then
-              do ref_k = 1, km
-                if (ref_depth_cm .lt. zw(ref_k)) exit
-              end do
-            else
-              ref_k = km
-            end if
+        if (allocated(diags(n)%field_2d)) then
+           do m=1,marbl_diags_stream_cnt(n)
+             call accumulate_tavg_field(diags(n)%field_2d(:), tavg_ids(n,m), bid, i(:), c(:))
+           end do
          else
-            ndims = 3
-            if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
-               if (diags(n)%ltruncated_vertical_extent) then
-                  gloc = '3114'
-                  coords = 'TLONG TLAT z_t_150m time'
-               else
-                  gloc = '3111'
-                  coords = 'TLONG TLAT z_t time'
-               end if
-            elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
-               gloc = '3112'
-               coords = 'TLONG TLAT z_w_top time'
-            else
-               write(err_msg,*) "'", trim(diags(n)%vertical_grid), &
-                    "' is not a valid vertical grid"
-               call shr_sys_abort(err_msg)
-            end if
+           do m=1,marbl_diags_stream_cnt(n)
+             call accumulate_tavg_field(diags(n)%field_3d(:,:), tavg_ids(n,m), bid, i(:), c(:))
+           end do
          end if
-
-         do m=1,stream_cnt(n)
-           if (m .eq. 1) then
-             write(short_name, "(A)") trim(diags(n)%short_name)
-           else
-             write(short_name, "(A,'_',I0)") trim(diags(n)%short_name), m
-           end if
-           if (ndims .eq. 2) then
-             call define_tavg_field(tavg_ids(n,m),    &
-                  short_name,                         &
-                  ndims,                              &
-                  tavg_method = tavg_method_avg,      &
-                  long_name=trim(diags(n)%long_name), &
-                  units=trim(diags(n)%units),         &
-                  grid_loc=gloc,                      &
-                  mask_k=ref_k,                       &
-                  coordinates=coords,                 &
-                  transpose_field=(ndims .eq. 3))
-           else
-             call define_tavg_field(tavg_ids(n,m),    &
-                  short_name,                         &
-                  ndims,                              &
-                  tavg_method = tavg_method_avg,      &
-                  long_name=trim(diags(n)%long_name), &
-                  units=trim(diags(n)%units),         &
-                  grid_loc=gloc,                      &
-                  coordinates=coords,                 &
-                  transpose_field=(ndims .eq. 3))
-           end if
-         end do
       end do
-    end associate
-
-  end subroutine ecosys_tavg_define_from_diag
-
-end module ecosys_tavg
-
-!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+  
+      end associate
+  
+    end subroutine ecosys_tavg_accumulate_from_diag
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_accumulate_scalar_rmeans(marbl_instance, field_source)
+  
+      ! Accumulate diagnostics for scalar running means
+  
+      implicit none
+  
+      type(marbl_interface_class), intent(in) :: marbl_instance
+      character (*),               intent(in) :: field_source   ! 'interior_tendency' or 'surface_flux'
+  
+      !-----------------------------------------------------------------------
+      !  local variables
+      !-----------------------------------------------------------------------
+      integer :: n
+      !-----------------------------------------------------------------------
+  
+      if (trim(field_source) == 'interior_tendency') then
+        do n = 1, size(marbl_instance%glo_scalar_rmean_interior_tendency)
+          call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior_tendency(n)%rmean, &
+                                     tavg_ids_scalar_rmean_interior(n))
+        end do
+      else
+        do n = 1, size(marbl_instance%glo_scalar_rmean_surface_flux)
+          call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface_flux(n)%rmean, &
+                                     tavg_ids_scalar_rmean_surface(n))
+        end do
+      end if
+  
+    end subroutine ecosys_tavg_accumulate_scalar_rmeans
+  
+    !***********************************************************************
+  
+    subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
+  
+      use tavg, only : tavg_method_avg
+      use constants, only : cmperm
+      use domain_size, only : km
+      use grid, only : zw
+  
+      implicit none
+  
+      type(marbl_diagnostics_type),      intent(in)    :: marbl_diags
+      integer(int_kind), dimension(:),   intent(in)    :: stream_cnt
+      integer(int_kind), dimension(:,:), intent(inout) :: tavg_ids
+  
+      !-----------------------------------------------------------------------
+      !  local variables
+      !-----------------------------------------------------------------------
+      character(char_len) :: err_msg, gloc, coords, short_name
+      integer :: m, n, ndims
+  
+      real (r8) :: ref_depth_cm
+      integer :: ref_k
+      !-----------------------------------------------------------------------
+  
+  
+      associate(diags => marbl_diags%diags(:))
+  
+        do n=1,size(diags)
+           if (trim(diags(n)%vertical_grid).eq.'none') then
+              ndims = 2
+              gloc = '2110'
+              coords = 'TLONG TLAT time'
+              ! find layer containing ref_depth, i.e., zw(k-1) .le. ref_depth .lt. zw(k)
+              ref_depth_cm = cmperm * diags(n)%ref_depth
+              if (ref_depth_cm .lt. zw(km)) then
+                do ref_k = 1, km
+                  if (ref_depth_cm .lt. zw(ref_k)) exit
+                end do
+              else
+                ref_k = km
+              end if
+           else
+              ndims = 3
+              if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
+                 if (diags(n)%ltruncated_vertical_extent) then
+                    gloc = '3114'
+                    coords = 'TLONG TLAT z_t_150m time'
+                 else
+                    gloc = '3111'
+                    coords = 'TLONG TLAT z_t time'
+                 end if
+              elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
+                 gloc = '3112'
+                 coords = 'TLONG TLAT z_w_top time'
+              else
+                 write(err_msg,*) "'", trim(diags(n)%vertical_grid), &
+                      "' is not a valid vertical grid"
+                 call shr_sys_abort(err_msg)
+              end if
+           end if
+  
+           do m=1,stream_cnt(n)
+             if (m .eq. 1) then
+               write(short_name, "(A)") trim(diags(n)%short_name)
+             else
+               write(short_name, "(A,'_',I0)") trim(diags(n)%short_name), m
+             end if
+             if (ndims .eq. 2) then
+               call define_tavg_field(tavg_ids(n,m),    &
+                    short_name,                         &
+                    ndims,                              &
+                    tavg_method = tavg_method_avg,      &
+                    long_name=trim(diags(n)%long_name), &
+                    units=trim(diags(n)%units),         &
+                    grid_loc=gloc,                      &
+                    mask_k=ref_k,                       &
+                    coordinates=coords,                 &
+                    transpose_field=(ndims .eq. 3))
+             else
+               call define_tavg_field(tavg_ids(n,m),    &
+                    short_name,                         &
+                    ndims,                              &
+                    tavg_method = tavg_method_avg,      &
+                    long_name=trim(diags(n)%long_name), &
+                    units=trim(diags(n)%units),         &
+                    grid_loc=gloc,                      &
+                    coordinates=coords,                 &
+                    transpose_field=(ndims .eq. 3))
+             end if
+           end do
+        end do
+      end associate
+  
+    end subroutine ecosys_tavg_define_from_diag
+  
+  end module ecosys_tavg
+  
+  !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+  
