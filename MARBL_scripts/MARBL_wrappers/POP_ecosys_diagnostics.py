@@ -44,16 +44,29 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     # Add satellite simulator fields
     fout.write("# Chlorophyll satellite emulator fields\n#\n")
     fout.write("totChl : sat_average\n") 
-    fout.write("totChl_clearsky : sat_average\n") # totChl_sat_nocld
-    fout.write("totChl_clearsky_wgt : sat_average\n") # totChl_sat_nocld_wgt
-    fout.write("totChl_cloudy : sat_average\n") # totChl_isccp
-    fout.write("totChl_cloudy_wgt : sat_average\n") # totChl_isccp_wgt
-    fout.write("totChl_cloudy_swath : sat_average\n") # new
-    fout.write("totChl_cloudy_swath_wgt : sat_average\n") # new
-    fout.write("totChl_clearsky_swath : sat_average\n") # totChl_sat_nocld_swath
-    fout.write("totChl_clearsky_swath_wgt : sat_average\n") # totChl_sat_nocld_wgt_swath
+    fout.write("totChl_satellite : sat_average\n")
+    fout.write("totChl_satellite_wgt : sat_average\n")
+    fout.write("totChl_satellite_swath : sat_average\n")
+    fout.write("totChl_satellite_swath_wgt : sat_average\n")
+    fout.write("totChl_clearsky : sat_average\n") 
+    fout.write("totChl_clearsky_wgt : sat_average\n")
+    fout.write("totChl_clearsky_swath : sat_average\n")
+    fout.write("totChl_clearsky_swath_wgt : sat_average\n") 
+    fout.write("sst : sat_average\n")
+    fout.write("sst_satellite : sat_average\n")
+    fout.write("sst_satellite_wgt : sat_average\n")
+    fout.write("sst_satellite_swath : sat_average\n")
+    fout.write("sst_satellite_swath_wgt : sat_average\n")
+    fout.write("sst_clearsky : sat_average\n")
+    fout.write("sst_clearsky_wgt : sat_average\n")
+    fout.write("sst_clearsky_swath : sat_average\n")
+    fout.write("sst_clearsky_swath_wgt : sat_average\n")
     fout.write("cloudfrac_isccp : sat_average\n")
     fout.write("cloudfrac_isccp_wgt : sat_average\n")
+    # # add new marbl diagnostics
+    # fout.write("photoC_sp_surf : sat_average\n")
+    # fout.write("photoC_diat_surf : sat_average\n")
+    # fout.write("photoC_diaz_surf : sat_average\n")
 
     # If adjusting bury coefficients, add running means to requested diagnostics
     if ladjust_bury_coeff:
@@ -253,7 +266,7 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
             full_diag_dict[tracer_short_name]['diags']['%s_zint_100m' % tracer_short_name] = 'high_average'
         tracer_short_name = autotroph_name+'Chl'
         if tracer_short_name in full_diag_dict.keys():
-            full_diag_dict[tracer_short_name]['diags']['%s_SURF' % tracer_short_name] = 'high_average'
+            full_diag_dict[tracer_short_name]['diags']['%s_SURF' % tracer_short_name] = 'sat_average' # changed from high_average
 
     # 4. Per-zooplankton diagnostics
     for zooplankton_name in zooplankton_list:

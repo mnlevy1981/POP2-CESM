@@ -6,7 +6,7 @@ cat >! $CASEBUILD/popconf/base.tavg.nml << EOF
 tavg_freq_opt           = 'nmonth'   'nday'   'once' 
 tavg_freq               =     1         1       1   
 tavg_stream_filestrings = 'nmonth1'  'nday1'  'once' 
-tavg_file_freq_opt      = 'nmonth'   'nmonth' 'once' 
+tavg_file_freq_opt      = 'nyear'   'nyear' 'once' 
 tavg_file_freq          =     1         1       1    
 tavg_start_opt          = 'nstep'    'nstep'  'nstep'
 tavg_start              =     0         0       0    

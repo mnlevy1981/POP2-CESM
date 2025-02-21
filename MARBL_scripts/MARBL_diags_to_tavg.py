@@ -275,7 +275,7 @@ if __name__ == "__main__":
     frequency_dict['low'] = args.low_frequency_stream
     frequency_dict['medium'] = args.medium_frequency_stream
     frequency_dict['high'] = args.high_frequency_stream
-    # frequency_dict['hourly'] = args.hourly_frequency_stream
+    # frequency_dict['hourly'] = args.hourly_frequency_stream 
     frequency_dict['sat'] = args.sat_frequency_stream
 
     import logging
