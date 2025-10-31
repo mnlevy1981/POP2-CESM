@@ -247,8 +247,10 @@
       tavg_TMXL,         &! tavg id for minimum mixed layer depth
       tavg_TMXL_DR,      &! tavg id for minimum mixed layer depth with density criterion
       tavg_HBLT,         &! tavg id for average boundary layer depth
+      tavg_HBLT_2,       &! tavg id for average boundary layer depth, stream #2
       tavg_XBLT,         &! tavg id for maximum boundary layer depth
-      tavg_TBLT           ! tavg id for minimum boundary layer depth
+      tavg_TBLT,         &! tavg id for minimum boundary layer depth
+      tavg_TBLT_2         ! tavg id for minimum boundary layer depth, stream #2
 
 !-----------------------------------------------------------------------
 !
@@ -916,6 +918,12 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_HBLT_2,'HBLT_2',2,                     &
+                          tavg_method=tavg_method_avg,                &
+                          long_name='Boundary-Layer Depth',           &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_XBLT,'XBLT',2,                     &
                           tavg_method=tavg_method_max,                &
                           long_name='Maximum Boundary-Layer Depth',   &
@@ -928,6 +936,11 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_TBLT_2,'TBLT_2',2,                   &
+                          tavg_method=tavg_method_min,                &
+                          long_name='Minimum Boundary-Layer Depth',   &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
 !-----------------------------------------------------------------------
 !
 !  define movie diagnostic fields
@@ -1498,6 +1511,7 @@
           !$OMP PARALLEL DO PRIVATE(iblock)
           do iblock=1,nblocks_clinic
             call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_HBLT, iblock, 1)
+            call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_HBLT_2, iblock, 1)
           end do
           !$OMP END PARALLEL DO
 
@@ -1510,6 +1524,7 @@
           !$OMP PARALLEL DO PRIVATE(iblock)
           do iblock=1,nblocks_clinic
             call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_TBLT, iblock, 1)
+            call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_TBLT_2, iblock, 1)
           end do
           !$OMP END PARALLEL DO
         end if

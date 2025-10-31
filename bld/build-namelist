@@ -1142,6 +1142,35 @@ add_default($nl,'lfw_as_salt_flx');
 add_default($nl,'precip_fact_const');
 
 ##########################################
+# namelist group: forcing_gterms_nml     #
+##########################################
+
+add_default($nl,'f1d_filename');
+add_default($nl,'f1d_fieldlistfile');
+add_default($nl,'f1d_fieldlistmodel');
+
+##########################################
+# namelist group: forcing_uv_interior_nml#
+##########################################
+
+add_default($nl,'uv_interior_data_type');
+add_default($nl,'uv_interior_data_inc');
+add_default($nl,'uv_interior_interp_freq');
+add_default($nl,'uv_interior_interp_type');
+add_default($nl,'uv_interior_interp_inc');
+add_default($nl,'uv_interior_restore_tau');
+add_default($nl,'uv_interior_filename');
+add_default($nl,'uv_interior_file_fmt');
+add_default($nl,'uv_interior_restore_max_level');
+add_default($nl,'uv_interior_formulation');
+add_default($nl,'uv_interior_data_renorm');
+add_default($nl,'uv_interior_variable_restore');
+add_default($nl,'uv_interior_restore_filename');
+add_default($nl,'uv_interior_restore_file_fmt');
+add_default($nl,'uv_interior_surface_restore');
+add_default($nl,'uv_interior_nudge');
+
+##########################################
 # namelist group: forcing_pt_interior_nml#
 ##########################################
 
@@ -1164,6 +1193,7 @@ add_default($nl,'pt_interior_shr_stream_year_first');
 add_default($nl,'pt_interior_shr_stream_year_last');
 add_default($nl,'pt_interior_shr_stream_year_align');
 add_default($nl,'pt_interior_shr_stream_file');
+add_default($nl,'pt_interior_nudge');
 
 ##########################################
 # namelist group: forcing_s_interior_nml #
@@ -1188,6 +1218,7 @@ add_default($nl,'s_interior_shr_stream_year_first');
 add_default($nl,'s_interior_shr_stream_year_last');
 add_default($nl,'s_interior_shr_stream_year_align');
 add_default($nl,'s_interior_shr_stream_file');
+add_default($nl,'s_interior_nudge');
 
 ##########################################
 # namelist group: forcing_ap_interior_nml#
@@ -2233,6 +2264,8 @@ my @groups = qw(domain_nml
                 forcing_ws_nml
                 forcing_shf_nml
                 forcing_sfwf_nml
+                forcing_gterms_nml
+                forcing_uv_interior_nml
                 forcing_pt_interior_nml
                 forcing_s_interior_nml
                 forcing_ap_nml

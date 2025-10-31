@@ -53,9 +53,9 @@
 <dt_count ocn_grid="gx3v7"  > 12</dt_count>
 <dt_count ocn_grid="gx3v7"  ocn_onedim="TRUE">24</dt_count>
 <dt_count ocn_grid="gx1v6"  > 24</dt_count>
-<dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
+<dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">24</dt_count>
 <dt_count ocn_grid="gx1v7"  > 24</dt_count>
-<dt_count ocn_grid="gx1v7"  ocn_onedim="TRUE">46</dt_count>
+<dt_count ocn_grid="gx1v7"  ocn_onedim="TRUE">24</dt_count>
 <dt_count ocn_grid="gx1v7"  ocn_transient="ssp585ext">48</dt_count>
 <dt_count ocn_grid="tx1v1"  > 24</dt_count>
 <dt_count ocn_grid="tx0.1v2">300</dt_count>
@@ -87,7 +87,7 @@
 <!---------------------------->
 
 <sfc_layer_opt>'varthick'</sfc_layer_opt>
-<sfc_layer_opt ocn_onedim="TRUE">'rigid'</sfc_layer_opt>
+<sfc_layer_opt ocn_onedim="TRUE">'varthick'</sfc_layer_opt>
 
 <horiz_grid_opt>file</horiz_grid_opt>
 <vert_grid_opt >file</vert_grid_opt>
@@ -143,7 +143,7 @@
 <lconst_Coriolis iden_cols="TRUE">.true.</lconst_Coriolis>
 
 <lmin_Coriolis>.false.</lmin_Coriolis>
-<lmin_Coriolis ocn_onedim="TRUE">.true.</lmin_Coriolis>
+<lmin_Coriolis ocn_onedim="TRUE">.false.</lmin_Coriolis>
 
 <Coriolis_min>6.4e-6</Coriolis_min>
 
@@ -321,35 +321,35 @@
 <ltidal_max >.true.</ltidal_max>
 <ltidal_stabc >.true.</ltidal_stabc>
 
-<ltidal_min_regions>.true.</ltidal_min_regions> 
+<ltidal_min_regions>.true.</ltidal_min_regions>
 <ltidal_min_regions ocn_grid="tx1v1"  >.false.</ltidal_min_regions>
 <ltidal_min_regions ocn_grid="tx0.1v2">.false.</ltidal_min_regions>
 <ltidal_min_regions ocn_grid="tx0.1v3">.false.</ltidal_min_regions>
-<num_tidal_min_regions> 3</num_tidal_min_regions> 
+<num_tidal_min_regions> 3</num_tidal_min_regions>
 
 <tidal_min_values(1)> 20.0</tidal_min_values(1)>
-<tidal_min_regions_name(1)> 'Denmark Strait'</tidal_min_regions_name(1)>                
+<tidal_min_regions_name(1)> 'Denmark Strait'</tidal_min_regions_name(1)>
 <tidal_min_regions_klevels(1)>6</tidal_min_regions_klevels(1)>
-<tidal_TLATmin_regions(1)> 67.0</tidal_TLATmin_regions(1)>                
-<tidal_TLATmax_regions(1)> 69.4</tidal_TLATmax_regions(1)>                
-<tidal_TLONmin_regions(1)> 333.5</tidal_TLONmin_regions(1)>                
-<tidal_TLONmax_regions(1)> 337.9</tidal_TLONmax_regions(1)>                
+<tidal_TLATmin_regions(1)> 67.0</tidal_TLATmin_regions(1)>
+<tidal_TLATmax_regions(1)> 69.4</tidal_TLATmax_regions(1)>
+<tidal_TLONmin_regions(1)> 333.5</tidal_TLONmin_regions(1)>
+<tidal_TLONmax_regions(1)> 337.9</tidal_TLONmax_regions(1)>
 
 <tidal_min_values(2)> 20.0</tidal_min_values(2)>
-<tidal_min_regions_name(2)> 'Faroe Bank Channel'</tidal_min_regions_name(2)>                
+<tidal_min_regions_name(2)> 'Faroe Bank Channel'</tidal_min_regions_name(2)>
 <tidal_min_regions_klevels(2)>6</tidal_min_regions_klevels(2)>
-<tidal_TLATmin_regions(2)> 60.7</tidal_TLATmin_regions(2)>                
-<tidal_TLATmax_regions(2)> 64.1</tidal_TLATmax_regions(2)>                
-<tidal_TLONmin_regions(2)> 355.</tidal_TLONmin_regions(2)>                
-<tidal_TLONmax_regions(2)> 1.8</tidal_TLONmax_regions(2)>                
+<tidal_TLATmin_regions(2)> 60.7</tidal_TLATmin_regions(2)>
+<tidal_TLATmax_regions(2)> 64.1</tidal_TLATmax_regions(2)>
+<tidal_TLONmin_regions(2)> 355.</tidal_TLONmin_regions(2)>
+<tidal_TLONmax_regions(2)> 1.8</tidal_TLONmax_regions(2)>
 
 <tidal_min_values(3)> 20.0</tidal_min_values(3)>
-<tidal_min_regions_name(3)> 'Ross Sea'</tidal_min_regions_name(3)>                
+<tidal_min_regions_name(3)> 'Ross Sea'</tidal_min_regions_name(3)>
 <tidal_min_regions_klevels(3)>6</tidal_min_regions_klevels(3)>
-<tidal_TLATmin_regions(3)> -78.2</tidal_TLATmin_regions(3)>                
-<tidal_TLATmax_regions(3)> -74.4</tidal_TLATmax_regions(3)>                
-<tidal_TLONmin_regions(3)> 164.2</tidal_TLONmin_regions(3)>                
-<tidal_TLONmax_regions(3)> 188.9</tidal_TLONmax_regions(3)>                
+<tidal_TLATmin_regions(3)> -78.2</tidal_TLATmin_regions(3)>
+<tidal_TLATmax_regions(3)> -74.4</tidal_TLATmax_regions(3)>
+<tidal_TLONmin_regions(3)> 164.2</tidal_TLONmin_regions(3)>
+<tidal_TLONmax_regions(3)> 188.9</tidal_TLONmax_regions(3)>
 
 <ltidal_schmittner_socn>.false.</ltidal_schmittner_socn>
 <ltidal_schmittner_socn ocn_grid="gx3v7"  >.false.</ltidal_schmittner_socn>
@@ -861,7 +861,7 @@
 <!---------------------------->
 
 <ldamp_uv>.false.</ldamp_uv>
-<ldamp_uv ocn_onedim="TRUE">.true.</ldamp_uv>
+<ldamp_uv ocn_onedim="TRUE">.false.</ldamp_uv>
 
 <!---------------------------->
 <!-- forcing_ws_nml -->
@@ -971,6 +971,35 @@
 <precip_fact_const>1.0</precip_fact_const>
 
 <!---------------------------->
+<!-- forcing_gterms_nml     -->
+<!---------------------------->
+
+<f1d_filename>'unknown_f1d_filename'</f1d_filename>
+<f1d_fieldlistfile>'unknown_f1d_fieldlistfile'</f1d_fieldlistfile>
+<f1d_fieldlistmodel>'unknown_f1d_fieldlistmodel'</f1d_fieldlistmodel>
+
+<!---------------------------->
+<!-- forcing_uv_interior_nml-->
+<!---------------------------->
+
+<uv_interior_data_renorm>20*1.</uv_interior_data_renorm>
+<uv_interior_data_type>'none'</uv_interior_data_type>
+<uv_interior_data_inc>24.</uv_interior_data_inc>
+<uv_interior_interp_freq>'every-timestep'</uv_interior_interp_freq>
+<uv_interior_interp_type>'linear'</uv_interior_interp_type>
+<uv_interior_interp_inc>72.</uv_interior_interp_inc>
+<uv_interior_restore_tau>365.</uv_interior_restore_tau>
+<uv_interior_filename>'unknown-uv_interior'</uv_interior_filename>
+<uv_interior_file_fmt>'bin'</uv_interior_file_fmt>
+<uv_interior_restore_max_level>0</uv_interior_restore_max_level>
+<uv_interior_formulation>'restoring'</uv_interior_formulation>
+<uv_interior_variable_restore>.false.</uv_interior_variable_restore>
+<uv_interior_restore_filename>'unknown-uv_interior_restore'</uv_interior_restore_filename>
+<uv_interior_restore_file_fmt>'bin'</uv_interior_restore_file_fmt>
+<uv_interior_surface_restore>.false.</uv_interior_surface_restore>
+<uv_interior_nudge>.false.</uv_interior_nudge>
+
+<!---------------------------->
 <!-- forcing_pt_interior_nml-->
 <!---------------------------->
 
@@ -989,11 +1018,12 @@
 <pt_interior_restore_filename>'unknown-pt_interior_restore'</pt_interior_restore_filename>
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
 <pt_interior_surface_restore>.false.</pt_interior_surface_restore>
-<pt_interior_surface_restore ocn_onedim="TRUE">.true.</pt_interior_surface_restore>
+<pt_interior_surface_restore ocn_onedim="TRUE">.false.</pt_interior_surface_restore>
 <pt_interior_shr_stream_year_first>1</pt_interior_shr_stream_year_first>
 <pt_interior_shr_stream_year_last>1</pt_interior_shr_stream_year_last>
 <pt_interior_shr_stream_year_align>1</pt_interior_shr_stream_year_align>
 <pt_interior_shr_stream_file> 'unknown-pt_interior_shr_stream'</pt_interior_shr_stream_file>
+<pt_interior_nudge>.false.</pt_interior_nudge>
 
 <!---------------------------->
 <!--forcing_s_interior_nml -->
@@ -1014,11 +1044,12 @@
 <s_interior_restore_filename>'unknown-s_interior_restore'</s_interior_restore_filename>
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
 <s_interior_surface_restore>.false.</s_interior_surface_restore>
-<s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
+<s_interior_surface_restore ocn_onedim="TRUE">.false.</s_interior_surface_restore>
 <s_interior_shr_stream_year_first>1</s_interior_shr_stream_year_first>
 <s_interior_shr_stream_year_last>1</s_interior_shr_stream_year_last>
 <s_interior_shr_stream_year_align>1</s_interior_shr_stream_year_align>
 <s_interior_shr_stream_file> 'unknown-s_interior_shr_stream'</s_interior_shr_stream_file>
+<s_interior_nudge>.false.</s_interior_nudge>
 
 <!---------------------------->
 <!--forcing_ap_interior_nml -->
@@ -1179,6 +1210,7 @@
 
 <lmcog>.false.</lmcog>
 <lmcog use_ecosys="TRUE">.true.</lmcog>
+<lmcog ocn_onedim="TRUE">.false.</lmcog>
 
 <lmcog_debug>.false.</lmcog_debug>
 <mcog_dagg_qsw_abort_thres>1.0e-10</mcog_dagg_qsw_abort_thres>
@@ -1195,6 +1227,7 @@
 
 <iage_on>.false.</iage_on>
 <iage_on use_iage="TRUE">.true.</iage_on>
+<iage_on ocn_onedim="TRUE">.true.</iage_on>
 
 <cfc_on>.false.</cfc_on>
 <cfc_on use_cfc="TRUE">.true.</cfc_on>
@@ -1204,9 +1237,11 @@
 
 <abio_dic_dic14_on>.false.</abio_dic_dic14_on>
 <abio_dic_dic14_on use_abio="TRUE">.true.</abio_dic_dic14_on>
+<abio_dic_dic14_on ocn_onedim="TRUE">.false.</abio_dic_dic14_on>
 
 <ecosys_on>.false.</ecosys_on>
 <ecosys_on use_ecosys="TRUE">.true.</ecosys_on>
+<ecosys_on ocn_onedim="TRUE">.false.</ecosys_on>
 
 <irf_on>.false.</irf_on>
 <irf_on use_irf="TRUE">.true.</irf_on>
@@ -1309,7 +1344,6 @@
 <abio_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
-<abio_atm_d14c_filename ocn_transient="ssp534">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP534os_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP5B_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 
 <abio_atm_co2_filename>ocn/pop/res_indpt/forcing/splco2_20140912.dat</abio_atm_co2_filename>
@@ -1319,7 +1353,6 @@
 <abio_atm_co2_opt ocn_transient="ssp126">'drv_diag'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="ssp245">'drv_diag'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="ssp370">'drv_diag'</abio_atm_co2_opt>
-<abio_atm_co2_opt ocn_transient="ssp534">'drv_diag'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="ssp585">'drv_diag'</abio_atm_co2_opt>
 
 <abio_atm_d14c_opt>'lat_bands'</abio_atm_d14c_opt>
@@ -1327,7 +1360,6 @@
 <abio_atm_d14c_opt ocn_transient="ssp126">'file'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="ssp245">'file'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="ssp370">'file'</abio_atm_d14c_opt>
-<abio_atm_d14c_opt ocn_transient="ssp534">'file'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="ssp585">'file'</abio_atm_d14c_opt>
 
 <abio_atm_d14c_const>0.0</abio_atm_d14c_const>
@@ -1514,14 +1546,6 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
 
-<ndep_data_type ocn_transient="ssp534">shr_stream</ndep_data_type>
-<ndep_shr_stream_year_first ocn_transient="ssp534">2039</ndep_shr_stream_year_first>
-<ndep_shr_stream_year_last  ocn_transient="ssp534">2101</ndep_shr_stream_year_last>
-<ndep_shr_stream_year_align ocn_transient="ssp534">2039</ndep_shr_stream_year_align>
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp534">ocn/pop/gx3v7/forcing/ndep_ocn_ssp534os_w_nhx_emis_gx3v7_c210223.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp534">ocn/pop/gx1v6/forcing/ndep_ocn_ssp534os_w_nhx_emis_gx1v6_c210223.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp534">ocn/pop/gx1v6/forcing/ndep_ocn_ssp534os_w_nhx_emis_gx1v6_c210223.nc</ndep_shr_stream_file>
-
 <ndep_data_type ocn_transient="ssp585">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="ssp585">2014</ndep_shr_stream_year_first>
 <ndep_shr_stream_year_last  ocn_transient="ssp585">2101</ndep_shr_stream_year_last>
@@ -1596,7 +1620,6 @@
 <ciso_atm_d13c_opt ocn_transient="ssp126">'file'</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="ssp245">'file'</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="ssp370">'file'</ciso_atm_d13c_opt>
-<ciso_atm_d13c_opt ocn_transient="ssp534">'file'</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="ssp585">'file'</ciso_atm_d13c_opt>
 
 <ciso_atm_d13c_const>-6.610</ciso_atm_d13c_const>
@@ -1606,7 +1629,6 @@
 <ciso_atm_d14c_opt ocn_transient="ssp126">'file'</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="ssp245">'file'</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="ssp370">'file'</ciso_atm_d14c_opt>
-<ciso_atm_d14c_opt ocn_transient="ssp534">'file'</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="ssp585">'file'</ciso_atm_d14c_opt>
 
 <ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
@@ -1617,14 +1639,12 @@
 <ciso_atm_d13c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP126_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP245_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP3B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
-<ciso_atm_d13c_filename ocn_transient="ssp534">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP534os_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP5B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 
 <ciso_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c190528.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
-<ciso_atm_d14c_filename ocn_transient="ssp534">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP534os_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP5B_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 
 <ciso_atm_model_year>1</ciso_atm_model_year>
@@ -1764,16 +1784,20 @@
 <ebm_param_file_fmt>nc</ebm_param_file_fmt>
 
 <estuary_option ocn_grid="gx1v6">on</estuary_option>
+<estuary_option ocn_grid="gx1v6" ocn_onedim="TRUE">off</estuary_option>
 <estuary_type ocn_grid="gx1v6">vsf_ebm</estuary_type>
 <ebm_param_option ocn_grid="gx1v6">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
 
 <estuary_option ocn_grid="gx1v7">on</estuary_option>
+<estuary_option ocn_grid="gx1v7" ocn_onedim="TRUE">off</estuary_option>
 <estuary_type ocn_grid="gx1v7">vsf_ebm</estuary_type>
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
 <ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
 <ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025v2">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+
+<estuary_option ocn_onedim="TRUE">off</estuary_option>
 
 <estuary_option ocn_grid="tx0.1v3">on</estuary_option>
 
@@ -1902,4 +1926,3 @@
 
 
 </namelist_defaults>
-

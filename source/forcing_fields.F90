@@ -17,8 +17,8 @@ module forcing_fields
    use kinds_mod
    use blocks,      only: nx_block, ny_block
    use constants,   only: c0
-   use domain_size, only: max_blocks_clinic,nt
-      
+   use domain_size, only: max_blocks_clinic,nt,km
+
    implicit none
    save
 
@@ -88,6 +88,13 @@ module forcing_fields
       SEAICE_DUST_FLUX,         &! coarse dust flux from seaice from cpl (g/cm2/s)
       ATM_BLACK_CARBON_FLUX,    &! black carbon flux from atm from cpl (g/cm2/s)
       SEAICE_BLACK_CARBON_FLUX   ! black carbon flux from seaice from cpl (g/cm2/s)
+
+   real (r8), dimension(nx_block,ny_block,km,max_blocks_clinic), &
+      public ::          &
+      FGT,               &! temperature forcing (g-term)
+      FGS,               &! salinity forcing (g-term)
+      FGU,               &! u forcing (g-term)
+      FGV                 ! v forcing (g-term)
 
 !***********************************************************************
 

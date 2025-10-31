@@ -1,6 +1,9 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
  module baroclinic
 
+! Modified by Jongsoo Shin on Fri Aug 08 2025 
+! Added call to UVEL & VVEL restoring subroutine
+
 !BOP
 ! !MODULE: baroclinic
 !
@@ -53,12 +56,14 @@
    use io_types, only: nml_in, nml_filename, stdout
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now, &
        tavg_method_max, tavg_method_min
-   use forcing_fields, only: STF, SMF, lsmft_avail, SMFT, TFW
+   use forcing_fields, only: STF, SMF, lsmft_avail, SMFT, TFW, FGT, FGS, FGU, FGV
    use forcing_shf, only: SHF_QSW
    use forcing_sfwf, only: lfw_as_salt_flx
    use sw_absorption, only:  add_sw_absorb
    use forcing_pt_interior, only: set_pt_interior
    use forcing_s_interior, only: set_s_interior
+   use forcing_uv_interior, only: set_uv_interior
+   use forcing_gterms
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers, &
        set_interior_passive_tracers_3D
@@ -595,6 +600,16 @@
 
 !-----------------------------------------------------------------------
 !
+!  read 1d forcing stream dataset (G-terms)
+!
+!-----------------------------------------------------------------------
+   if (l1Ddyn) then
+   
+      call get_gterms_data
+   
+   endif
+!-----------------------------------------------------------------------
+!
 !  compute flux velocities in ghost cells
 !
 !-----------------------------------------------------------------------
@@ -1012,6 +1027,23 @@
          call ovf_Utlda(iblock)
       endif
 
+!-----------------------------------------------------------------------
+!   add U & V restoring terms - Jongsoo Shin & Ivan Lima - present location
+!-----------------------------------------------------------------------
+      if (l1Ddyn) then
+         WORK1 = c0
+         WORK2 = c0
+         
+         do k = 1,km
+            call set_uv_interior(k,this_block,WORK1,WORK2)
+            UVEL(:,:,k,newtime,iblock) = UVEL(:,:,k,newtime,iblock) + c2dtu*WORK1
+            VVEL(:,:,k,newtime,iblock) = VVEL(:,:,k,newtime,iblock) + c2dtu*WORK2
+         enddo
+
+         if ( overflows_on .and. overflows_interactive ) then
+            call ovf_Utlda(iblock)
+         endif
+      endif
 !-----------------------------------------------------------------------
 !
 !     find vertical averages ([Upp],[Vpp]).
@@ -1788,6 +1820,12 @@
    call accumulate_tavg_field(WORKX,tavg_VDIFFU,bid,k)
    call accumulate_tavg_field(WORKY,tavg_VDIFFV,bid,k)
 
+   ! add G-term forcing for U and U - Jongsoo Shin & Ivan Lima
+   if (lsingle_col_force_f1d) then
+      if (F1d_GU_ind > 0) FX = FX + FGU(:,:,k,bid)
+      if (F1d_GV_ind > 0) FY = FY + FGV(:,:,k,bid)
+   endif
+
    if (ldiag_global) then
       if (partial_bottom_cells) then
          DIAG_KE_VMIX_2D(:,:,bid) = DIAG_KE_VMIX_2D(:,:,bid) + &
@@ -2099,6 +2137,18 @@
 
    !*** if estuary parameterization is turned on add its contribution
    if ( lestuary_on) call add_estuary_vsf_tracer_tend(WORKN, k, this_block)
+
+   ! add G-term forcing for T and S - Jongsoo Shin & Ivan Lima
+   if (lsingle_col_force_f1d) then
+      if (F1d_GT_ind > 0) then
+         where (k <= KMT(:,:,bid))  WORKN(:,:,1) = WORKN(:,:,1) + FGT(:,:,k,bid)
+      endif
+
+      if (F1d_GS_ind > 0) then
+         where (k <= KMT(:,:,bid))  WORKN(:,:,2) = WORKN(:,:,2) + FGS(:,:,k,bid)
+
+      endif
+   endif
 
    FT = FT + WORKN
 

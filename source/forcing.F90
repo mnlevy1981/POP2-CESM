@@ -2,6 +2,9 @@
 
  module forcing
 
+! Modified by Jongsoo Shin on Fri Aug 08 2025
+! Added calls to UVEL & VVEL restoring subroutines
+
 !BOP
 ! !MODULE: forcing
 !
@@ -27,6 +30,8 @@
    use forcing_sfwf
    use forcing_pt_interior
    use forcing_s_interior
+   use forcing_uv_interior
+   use forcing_gterms
    use forcing_ap
    use forcing_coupled, only: set_combined_forcing, tavg_coupled_forcing,  &
        liceform, qsw_12hr_factor, qsw_distrb_iopt, qsw_distrb_iopt_cosz, &
@@ -68,14 +73,18 @@
 
    integer (int_kind) :: &
       tavg_SHF,          &! tavg_id for surface heat flux
+      tavg_SHF_2,        &! tavg_id for daily surface heat flux
       tavg_SHF_QSW,      &! tavg_id for short-wave solar heat flux
+      tavg_SHF_QSW_2,    &! tavg_id for daily short-wave solar heat flux
       tavg_SFWF,         &! tavg_id for surface freshwater flux
+      tavg_SFWF_2,       &! tavg_id for daily surface freshwater flux
       tavg_SFWF_WRST,    &! tavg_id for weak restoring freshwater flux
       tavg_TAUX,         &! tavg_id for wind stress in X direction
       tavg_TAUX2,        &! tavg_id for wind stress**2 in X direction
       tavg_TAUY,         &! tavg_id for wind stress in Y direction
       tavg_TAUY2,        &! tavg_id for wind stress**2 in Y direction
       tavg_FW,           &! tavg_id for freshwater flux
+      tavg_FW_2,         &! tavg_id for daily freshwater flux
       tavg_TFW_T,        &! tavg_id for T flux due to freshwater flux
       tavg_TFW_S,        &! tavg_id for S flux due to freshwater flux
       tavg_U10_SQR,      &! tavg_id for U10_SQR 10m wind speed squared from cpl
@@ -164,7 +173,9 @@
    call init_sfwf(STF)
    call init_pt_interior
    call init_s_interior
+   call init_uv_interior
    call init_ap(ATM_PRESS)
+   call init_gterms
 
 !-----------------------------------------------------------------------
 !
@@ -177,12 +188,27 @@
                           units='watt/m^2', grid_loc='2110',                 &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_SHF_2, 'SHF_2', 2,                            &
+                          long_name='Total Surface Heat Flux, Including SW', &
+                          units='watt/m^2', grid_loc='2110',                 &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_SHF_QSW, 'SHF_QSW', 2,                        &
                           long_name='Solar Short-Wave Heat Flux',            &
                           units='watt/m^2', grid_loc='2110',                 &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_SHF_QSW_2, 'SHF_QSW_2', 2,                    &
+                          long_name='Solar Short-Wave Heat Flux',            &
+                          units='watt/m^2', grid_loc='2110',                 &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_SFWF,'SFWF',2,                                   &
+                          long_name='Virtual Salt Flux in FW Flux formulation', &
+                          units='kg/m^2/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_SFWF_2,'SFWF_2',2,                               &
                           long_name='Virtual Salt Flux in FW Flux formulation', &
                           units='kg/m^2/s', grid_loc='2110',                    &
                           coordinates='TLONG TLAT time')
@@ -213,6 +239,11 @@
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_FW,'FW',2,                        &
+                          long_name='Freshwater Flux',           &
+                          units='centimeter/s', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_FW_2,'FW_2',2,                    &
                           long_name='Freshwater Flux',           &
                           units='centimeter/s', grid_loc='2110', &
                           coordinates='TLONG TLAT time')
@@ -318,7 +349,7 @@
 !-----------------------------------------------------------------------
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-      TFRZ               
+      TFRZ
    integer (int_kind) :: index_qsw, iblock, nbin
    real (r8) ::  &
       cosz_day,  &
@@ -339,6 +370,7 @@
 
    call get_pt_interior_data
    call get_s_interior_data
+   call get_uv_interior_data
 
 !-----------------------------------------------------------------------
 !
@@ -352,7 +384,7 @@
       call set_ws(SMF)
    endif
 
-   !*** NOTE: with bulk NCEP and partially-coupled forcing 
+   !*** NOTE: with bulk NCEP and partially-coupled forcing
    !***       set_shf must be called before set_sfwf
 
    call set_shf(STF)
@@ -442,7 +474,7 @@
    ! running_mean_test_update_sflux_var is only necessary for test mode
    call running_mean_test_update_sflux_var
 
-   call set_chl   
+   call set_chl
 
 #ifdef CCSMCOUPLED
    if (ANY(SHF_QSW < qsw_eps)) then
@@ -508,6 +540,7 @@
          end where
 
          call accumulate_tavg_field(WORK,tavg_SHF,iblock,1)
+         call accumulate_tavg_field(WORK,tavg_SHF_2,iblock,1)
       endif
 
       if (accumulate_tavg_now(tavg_SHF_QSW)) then
@@ -518,6 +551,7 @@
          end where
 
          call accumulate_tavg_field(WORK,tavg_SHF_QSW,iblock,1)
+         call accumulate_tavg_field(WORK,tavg_SHF_QSW_2,iblock,1)
       endif
 
       if (accumulate_tavg_now(tavg_SFWF)) then
@@ -538,7 +572,7 @@
                elsewhere
                   WORK = c0
                end where
-            else                     
+            else
                where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
                   WORK = STF(:,:,2,iblock)/salinity_factor
                elsewhere
@@ -548,6 +582,7 @@
          endif
 
          call accumulate_tavg_field(WORK,tavg_SFWF,iblock,1)
+         call accumulate_tavg_field(WORK,tavg_SFWF_2,iblock,1)
       endif
 
       if (accumulate_tavg_now(tavg_SFWF_WRST)) then
@@ -568,6 +603,7 @@
       call accumulate_tavg_field(SMF(:,:,2,iblock), tavg_TAUY,iblock,1)
       call accumulate_tavg_field(SMF(:,:,2,iblock)**2, tavg_TAUY2,iblock,1)
       call accumulate_tavg_field(FW (:,:,iblock), tavg_FW,iblock,1)
+      call accumulate_tavg_field(FW (:,:,iblock), tavg_FW_2,iblock,1)
       call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, tavg_TFW_T,iblock,1)
       call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_S,iblock,1)
       call accumulate_tavg_field(U10_SQR(:,:,iblock), tavg_U10_SQR,iblock,1)
