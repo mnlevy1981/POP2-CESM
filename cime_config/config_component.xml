@@ -2,8 +2,9 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
+    <desc ocn="POP2[%1D][%MCOM][%ECO][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
+    <desc option="MCOM" >Multi-Column Ocean Model </desc>
     <desc option="ECO">Ecosystem</desc>
     <desc option="ECOCESM20">Ecosystem, using CESM 2.0 settings</desc>
     <desc option="ABIO-DIC">Abiotic DIC/DIC14</desc>
@@ -41,6 +42,7 @@
       <value compset="_DATM.*CICE.*_POP2%[^_]*ECO">diagnostic</value>
       <value compset="OMIP_DATM.*CICE.*_POP2%[^_]*ECO">prognostic</value>
       <value compset="_DATM%CPLHIST.*CICE.*_POP2%[^_]*ECO">prognostic</value>
+      <value compset="_CAM6.*CICE.*_POP2%[^_]*MCOM">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -75,6 +77,7 @@
     <default_value>FALSE</default_value>
     <values>
       <value compset = "_POP2%[^_]*1D">TRUE</value>
+      <value compset = "_POP2%[^_]*MCOM">TRUE</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -196,6 +199,7 @@
       <value compset="_DATM%CPLHIST.*_POP2%[^_]*ECO">diagnostic</value>
       <value compset="^OMIP_DATM%IAF.*_POP2%[^_]*ECO">diagnostic</value>
       <value compset="^OMIP_DATM%JRA.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="_CAM6.*CICE.*_POP2%[^_]*MCOM">constant</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
