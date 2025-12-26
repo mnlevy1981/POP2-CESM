@@ -974,7 +974,7 @@
 <!-- forcing_gterms_nml     -->
 <!---------------------------->
 
-<f1d_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/gterms_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.nc'</f1d_filename>
+<f1d_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/gterms_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</f1d_filename>
 <f1d_fieldlistfile>'unknown_f1d_fieldlistfile'</f1d_fieldlistfile>
 <f1d_fieldlistfile ocn_onedim="TRUE">'GT:GS:GU:GV'</f1d_fieldlistfile>
 <f1d_fieldlistmodel>'unknown_f1d_fieldlistmodel'</f1d_fieldlistmodel>
@@ -1005,7 +1005,7 @@
 <uv_interior_nudge ocn_onedim="TRUE">.true.</uv_interior_nudge>
 <uv_interior_restore_max_level ocn_onedim="TRUE">3</uv_interior_restore_max_level>
 <uv_interior_restore_tau ocn_onedim="TRUE">0.125</uv_interior_restore_tau>
-<uv_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/UV_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.nc'</uv_interior_filename>
+<uv_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/UV_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</uv_interior_filename>
 <uv_interior_file_fmt ocn_onedim="TRUE">'nc'</uv_interior_file_fmt>
 
 <!---------------------------->
@@ -1063,7 +1063,7 @@
 <s_interior_nudge ocn_onedim="TRUE">.true.</s_interior_nudge>
 <s_interior_restore_max_level ocn_onedim="TRUE">1</s_interior_restore_max_level>
 <s_interior_restore_tau ocn_onedim="TRUE">15.</s_interior_restore_tau>
-<s_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/SALT_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.nc'</s_interior_filename>
+<s_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/SALT_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</s_interior_filename>
 <s_interior_file_fmt ocn_onedim="TRUE">'nc'</s_interior_file_fmt>
 
 <!---------------------------->
