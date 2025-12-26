@@ -3849,7 +3849,8 @@ CESM Default: 1.0
 id="f1d_filename"
 type="char*256"
 category="Grid (1D)"
-group="forcing_gterms_nml" >
+group="forcing_gterms_nml"
+input_pathname="abs" >
 single column mode forcing file for surface fields
 
 Default: 'unknown_f1d_filename'
@@ -3955,7 +3956,8 @@ CESM Default: 365
 id="uv_interior_filename"
 type="char*256"
 category="forcing"
-group="forcing_uv_interior_nml" >
+group="forcing_uv_interior_nml"
+input_pathname="abs" >
 File containing interior U & V data, or root of filenames if uv_interior_data_type='n--hour'.
 
 Default: 'unknown-uv_interior'
@@ -4345,7 +4347,8 @@ CESM Default: 365
 id="s_interior_filename"
 type="char*256"
 category="Forcing (Interior Salt)"
-group="forcing_s_interior_nml" >
+group="forcing_s_interior_nml"
+input_pathname="abs" >
 Name of file containing interior salinity data, or root of filenames if s_interior_data_type='n-hour'.
 
 Default: 'unknown-s_interior'

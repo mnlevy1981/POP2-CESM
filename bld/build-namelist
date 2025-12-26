@@ -1145,30 +1145,36 @@ add_default($nl,'precip_fact_const');
 # namelist group: forcing_gterms_nml     #
 ##########################################
 
-add_default($nl,'f1d_filename');
-add_default($nl,'f1d_fieldlistfile');
-add_default($nl,'f1d_fieldlistmodel');
+add_default($nl,'f1d_filename','ocn_onedim'=>"$OCN_ONEDIM",'nofail'=>1);
+if (not $nl->get_value('f1d_filename')) {
+  add_default($nl,'f1d_filename', 'val'=>'unknown_f1d_filename','noprepend'=>1);
+}
+add_default($nl,'f1d_fieldlistfile','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'f1d_fieldlistmodel','ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_uv_interior_nml#
 ##########################################
 
-add_default($nl,'uv_interior_data_type');
+add_default($nl,'uv_interior_data_type','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'uv_interior_data_inc');
 add_default($nl,'uv_interior_interp_freq');
 add_default($nl,'uv_interior_interp_type');
 add_default($nl,'uv_interior_interp_inc');
-add_default($nl,'uv_interior_restore_tau');
-add_default($nl,'uv_interior_filename');
-add_default($nl,'uv_interior_file_fmt');
-add_default($nl,'uv_interior_restore_max_level');
+add_default($nl,'uv_interior_restore_tau','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'uv_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'nofail'=>1);
+if (not $nl->get_value('uv_interior_filename')) {
+  add_default($nl,'uv_interior_filename', 'val'=>'unknown-uv_interior','noprepend'=>1);
+}
+add_default($nl,'uv_interior_file_fmt','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'uv_interior_restore_max_level','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'uv_interior_formulation');
 add_default($nl,'uv_interior_data_renorm');
 add_default($nl,'uv_interior_variable_restore');
 add_default($nl,'uv_interior_restore_filename');
 add_default($nl,'uv_interior_restore_file_fmt');
-add_default($nl,'uv_interior_surface_restore');
-add_default($nl,'uv_interior_nudge');
+add_default($nl,'uv_interior_surface_restore','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'uv_interior_nudge','ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_pt_interior_nml#
@@ -1199,15 +1205,18 @@ add_default($nl,'pt_interior_nudge');
 # namelist group: forcing_s_interior_nml #
 ##########################################
 
-add_default($nl,'s_interior_data_type');
+add_default($nl,'s_interior_data_type','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'s_interior_data_inc');
 add_default($nl,'s_interior_interp_freq');
 add_default($nl,'s_interior_interp_type');
 add_default($nl,'s_interior_interp_inc');
-add_default($nl,'s_interior_restore_tau');
-add_default($nl,'s_interior_filename');
-add_default($nl,'s_interior_file_fmt');
-add_default($nl,'s_interior_restore_max_level');
+add_default($nl,'s_interior_restore_tau','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'s_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'nofail'=>1);
+if (not $nl->get_value('s_interior_filename')) {
+  add_default($nl,'s_interior_filename', 'val'=>'unknown-s_interior','noprepend'=>1);
+}
+add_default($nl,'s_interior_file_fmt','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'s_interior_restore_max_level','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'s_interior_formulation');
 add_default($nl,'s_interior_data_renorm');
 add_default($nl,'s_interior_variable_restore');
@@ -1218,7 +1227,7 @@ add_default($nl,'s_interior_shr_stream_year_first');
 add_default($nl,'s_interior_shr_stream_year_last');
 add_default($nl,'s_interior_shr_stream_year_align');
 add_default($nl,'s_interior_shr_stream_file');
-add_default($nl,'s_interior_nudge');
+add_default($nl,'s_interior_nudge','ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_ap_interior_nml#
