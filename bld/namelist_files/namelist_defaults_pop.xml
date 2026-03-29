@@ -974,11 +974,11 @@
 <!-- forcing_gterms_nml     -->
 <!---------------------------->
 
-<f1d_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/gterms_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</f1d_filename>
+<f1d_filename ocn_grid="gx1v7" ocn_onedim="TRUE" ocn_onedim_restoring="FALSE">'ocn/pop/gx1v6/forcing/gterms_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</f1d_filename>
 <f1d_fieldlistfile>'unknown_f1d_fieldlistfile'</f1d_fieldlistfile>
-<f1d_fieldlistfile ocn_onedim="TRUE">'GT:GS:GU:GV'</f1d_fieldlistfile>
+<f1d_fieldlistfile ocn_onedim="TRUE" ocn_onedim_restoring="FALSE">'GT:GS:GU:GV'</f1d_fieldlistfile>
 <f1d_fieldlistmodel>'unknown_f1d_fieldlistmodel'</f1d_fieldlistmodel>
-<f1d_fieldlistmodel ocn_onedim="TRUE">'GT:GS:GU:GV'</f1d_fieldlistmodel>
+<f1d_fieldlistmodel ocn_onedim="TRUE" ocn_onedim_restoring="FALSE">'GT:GS:GU:GV'</f1d_fieldlistmodel>
 
 <!---------------------------->
 <!-- forcing_uv_interior_nml-->
@@ -1004,6 +1004,7 @@
 <uv_interior_surface_restore ocn_onedim="TRUE">.true.</uv_interior_surface_restore>
 <uv_interior_nudge ocn_onedim="TRUE">.true.</uv_interior_nudge>
 <uv_interior_restore_max_level ocn_onedim="TRUE">3</uv_interior_restore_max_level>
+<uv_interior_restore_max_level ocn_onedim="TRUE" ocn_onedim_restoring="TRUE">60</uv_interior_restore_max_level>
 <uv_interior_restore_tau ocn_onedim="TRUE">0.125</uv_interior_restore_tau>
 <uv_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/UV_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</uv_interior_filename>
 <uv_interior_file_fmt ocn_onedim="TRUE">'nc'</uv_interior_file_fmt>
@@ -1027,12 +1028,19 @@
 <pt_interior_restore_filename>'unknown-pt_interior_restore'</pt_interior_restore_filename>
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
 <pt_interior_surface_restore>.false.</pt_interior_surface_restore>
-<pt_interior_surface_restore ocn_onedim="TRUE">.false.</pt_interior_surface_restore>
 <pt_interior_shr_stream_year_first>1</pt_interior_shr_stream_year_first>
 <pt_interior_shr_stream_year_last>1</pt_interior_shr_stream_year_last>
 <pt_interior_shr_stream_year_align>1</pt_interior_shr_stream_year_align>
 <pt_interior_shr_stream_file> 'unknown-pt_interior_shr_stream'</pt_interior_shr_stream_file>
 <pt_interior_nudge>.false.</pt_interior_nudge>
+
+<pt_interior_data_type ocn_onedim_restoring="TRUE">'monthly'</pt_interior_data_type>
+<pt_interior_restore_tau ocn_onedim_restoring="TRUE">15.</pt_interior_restore_tau>
+<pt_interior_file_fmt ocn_onedim_restoring="TRUE">'nc'</pt_interior_file_fmt>
+<pt_interior_restore_max_level ocn_onedim_restoring="TRUE">60</pt_interior_restore_max_level>
+<pt_interior_surface_restore ocn_onedim="TRUE">.false.</pt_interior_surface_restore>
+<pt_interior_surface_restore ocn_onedim="TRUE" ocn_onedim_restoring="TRUE">.true.</pt_interior_surface_restore>
+<pt_interior_nudge ocn_onedim_restoring="TRUE">.true.</pt_interior_nudge>
 
 <!---------------------------->
 <!--forcing_s_interior_nml -->
@@ -1062,6 +1070,7 @@
 <s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
 <s_interior_nudge ocn_onedim="TRUE">.true.</s_interior_nudge>
 <s_interior_restore_max_level ocn_onedim="TRUE">1</s_interior_restore_max_level>
+<s_interior_restore_max_level ocn_onedim="TRUE" ocn_onedim_restoring="TRUE">60</s_interior_restore_max_level>
 <s_interior_restore_tau ocn_onedim="TRUE">15.</s_interior_restore_tau>
 <s_interior_filename ocn_grid="gx1v7" ocn_onedim="TRUE">'ocn/pop/gx1v6/forcing/SALT_12_months.b.e21.B1850.f09_g17.1dpop2-restoring.003.0011-0040.20250808.nc'</s_interior_filename>
 <s_interior_file_fmt ocn_onedim="TRUE">'nc'</s_interior_file_fmt>
