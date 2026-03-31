@@ -4136,7 +4136,8 @@ CESM Default: 365
 id="pt_interior_filename"
 type="char*256"
 category="Forcing (Interior Potential Temperature)"
-group="forcing_pt_interior_nml" >
+group="forcing_pt_interior_nml"
+input_pathname="abs" >
 File containing interior potential temperature data, or root of filenames if pt_interior_data_type='n--hour'.
 
 Default: 'unknown-pt_interior'

@@ -357,6 +357,10 @@ my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_
 my $ROF_GRID               = "$xmlvars{'ROF_GRID'}";
 my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
+# ERROR Check: if OCN_ONEDIM_RESTORING=TRUE then OCN_ONEDIM must also be TRUE
+if ($OCN_ONEDIM_RESTORING eq 'TRUE' and $OCN_ONEDIM eq 'FALSE') {
+  die "$ProgName: ERROR if OCN_ONEDIME_RESTORING is TRUE then OCN_ONEDIM must also be TRUE";
+}
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
 my $output_r = "./${CASE}.pop.r";
@@ -1163,7 +1167,7 @@ add_default($nl,'uv_interior_interp_freq');
 add_default($nl,'uv_interior_interp_type');
 add_default($nl,'uv_interior_interp_inc');
 add_default($nl,'uv_interior_restore_tau','ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl,'uv_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'nofail'=>1);
+add_default($nl,'uv_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING",'nofail'=>1);
 if (not $nl->get_value('uv_interior_filename')) {
   add_default($nl,'uv_interior_filename', 'val'=>'unknown-uv_interior','noprepend'=>1);
 }
@@ -1187,7 +1191,10 @@ add_default($nl,'pt_interior_interp_freq');
 add_default($nl,'pt_interior_interp_type');
 add_default($nl,'pt_interior_interp_inc');
 add_default($nl,'pt_interior_restore_tau','ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING");
-add_default($nl,'pt_interior_filename');
+add_default($nl,'pt_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING",'nofail'=>1);
+if (not $nl->get_value('pt_interior_filename')) {
+  add_default($nl,'pt_interior_filename', 'val'=>'unknown-pt_interior','noprepend'=>1);
+}
 add_default($nl,'pt_interior_file_fmt','ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING");
 add_default($nl,'pt_interior_restore_max_level','ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING");
 add_default($nl,'pt_interior_formulation');
@@ -1212,7 +1219,7 @@ add_default($nl,'s_interior_interp_freq');
 add_default($nl,'s_interior_interp_type');
 add_default($nl,'s_interior_interp_inc');
 add_default($nl,'s_interior_restore_tau','ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl,'s_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'nofail'=>1);
+add_default($nl,'s_interior_filename','ocn_onedim'=>"$OCN_ONEDIM",'ocn_onedim_restoring'=>"$OCN_ONEDIM_RESTORING",'nofail'=>1);
 if (not $nl->get_value('s_interior_filename')) {
   add_default($nl,'s_interior_filename', 'val'=>'unknown-s_interior','noprepend'=>1);
 }
